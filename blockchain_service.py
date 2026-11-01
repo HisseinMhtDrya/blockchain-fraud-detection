@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 from urllib.parse import urlparse
@@ -29,6 +30,101 @@ LOCAL_TEST_PRIVATE_KEY = (
     "0xac0974bec39a17e36ba4a6b4d238ff944"
     "bacb478cbed5efcae784d7bf4f2ff80"
 )
+
+LOGGER = logging.getLogger(__name__)
+
+TRANSACTION_ALERTS_ABI: list[dict[str, object]] = [
+    {
+        "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+        "name": "reporters",
+        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [],
+        "name": "getAlertCount",
+        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [{"internalType": "uint256", "name": "alertId", "type": "uint256"}],
+        "name": "getAlert",
+        "outputs": [
+            {
+                "components": [
+                    {"internalType": "string", "name": "transactionId", "type": "string"},
+                    {"internalType": "uint8", "name": "riskScore", "type": "uint8"},
+                    {"internalType": "bool", "name": "illicit", "type": "bool"},
+                    {"internalType": "uint256", "name": "timestamp", "type": "uint256"},
+                    {"internalType": "address", "name": "reporter", "type": "address"},
+                ],
+                "internalType": "struct TransactionAlerts.Alert",
+                "name": "",
+                "type": "tuple",
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"internalType": "string", "name": "transactionId", "type": "string"},
+            {"internalType": "uint8", "name": "riskScore", "type": "uint8"},
+            {"internalType": "bool", "name": "illicit", "type": "bool"},
+        ],
+        "name": "recordAlert",
+        "outputs": [
+            {"internalType": "uint256", "name": "alertId", "type": "uint256"}
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {
+                "indexed": True,
+                "internalType": "uint256",
+                "name": "alertId",
+                "type": "uint256",
+            },
+            {
+                "indexed": False,
+                "internalType": "string",
+                "name": "transactionId",
+                "type": "string",
+            },
+            {
+                "indexed": False,
+                "internalType": "uint8",
+                "name": "riskScore",
+                "type": "uint8",
+            },
+            {
+                "indexed": False,
+                "internalType": "bool",
+                "name": "illicit",
+                "type": "bool",
+            },
+            {
+                "indexed": False,
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256",
+            },
+            {
+                "indexed": False,
+                "internalType": "address",
+                "name": "reporter",
+                "type": "address",
+            },
+        ],
+        "name": "AlertRecorded",
+        "type": "event",
+    },
+]
 
 
 def _resolve_signing_key(chain_id: int, rpc_url: str) -> str:
@@ -81,19 +177,20 @@ class BlockchainService:
 
         private_key = _resolve_signing_key(self.w3.eth.chain_id, self.rpc_url)
 
-        if not ABI_PATH.is_file():
-            raise RuntimeError(
-                f"Artefact ABI du contrat introuvable : {ABI_PATH}. "
-                "Compilez le projet avec « npx hardhat build » avant de "
-                "démarrer l'API."
+        if ABI_PATH.is_file():
+            with open(ABI_PATH, "r", encoding="utf-8-sig") as fichier:
+                abi = json.load(fichier)["abi"]
+        else:
+            LOGGER.warning(
+                "Hardhat ABI artifact is missing at %s; using the bundled "
+                "TransactionAlerts ABI.",
+                ABI_PATH,
             )
-
-        with open(ABI_PATH, "r", encoding="utf-8-sig") as fichier:
-            artefact = json.load(fichier)
+            abi = TRANSACTION_ALERTS_ABI
 
         self.contract = self.w3.eth.contract(
             address=Web3.to_checksum_address(CONTRACT_ADDRESS),
-            abi=artefact["abi"],
+            abi=abi,
         )
 
         self._verifier_contrat_deploye()

@@ -54,16 +54,28 @@ class BlockchainSigningKeyTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "31337"):
             _resolve_signing_key(1, "https://mainnet.example")
 
-    def test_missing_contract_abi_has_an_explicit_startup_error(self) -> None:
+    def test_missing_contract_abi_uses_bundled_contract_abi(self) -> None:
         with (
             patch("blockchain_service.Web3") as web3,
             patch("blockchain_service.ABI_PATH", Path("missing-abi.json")),
         ):
             web3.return_value.is_connected.return_value = True
             web3.return_value.eth.chain_id = 31337
+            web3.return_value.eth.get_code.return_value = b"\x60\x00"
+            web3.return_value.eth.account.from_key.return_value.address = (
+                "0x0000000000000000000000000000000000000001"
+            )
+            web3.return_value.eth.contract.return_value.functions.reporters.return_value.call.return_value = True
 
-            with self.assertRaisesRegex(RuntimeError, "npx hardhat build"):
-                BlockchainService()
+            service = BlockchainService()
+
+        self.assertIsNotNone(service)
+        contract_kwargs = web3.return_value.eth.contract.call_args.kwargs
+        abi_names = {item["name"] for item in contract_kwargs["abi"]}
+        self.assertTrue(
+            {"reporters", "getAlertCount", "getAlert", "recordAlert", "AlertRecorded"}
+            .issubset(abi_names)
+        )
 
 
 if __name__ == "__main__":

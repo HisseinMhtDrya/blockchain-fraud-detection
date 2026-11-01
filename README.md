@@ -130,6 +130,8 @@ continue d'utiliser séparément `ETHERSCAN_API_KEY` et `ETHEREUM_RPC_URL` pour
 la lecture d'Ethereum mainnet. Sans cette configuration Sepolia valide, le
 dashboard affiche la blockchain hors ligne ; les analyses restent disponibles,
 mais aucune alerte on-chain ne peut être inscrite.
+L'API embarque l'ABI minimale de `TransactionAlerts` pour les déploiements
+Render où les artefacts compilés Hardhat, ignorés par Git, ne sont pas présents.
 
 Les champs requis manquants ou malformés dans une réponse fournisseur sont
 rejetés ; ils ne sont pas remplacés par des zéros. Une adresse sans activité
