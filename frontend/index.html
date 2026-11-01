@@ -1163,6 +1163,12 @@
           <h4>Principales contributions SHAP (probabilité scam)</h4>
           <ul>${explanations}</ul>`;
         resultBox.hidden = false;
+        if (!simulated && riskDetected) {
+          showToast(
+            `Alerte Ethereum : risque détecté (${result.score_risque_sur_100}/100) pour ${result.adresse}.`,
+            true,
+          );
+        }
     }
 
     byId("ethereum-address-form").addEventListener("submit", async (event) => {

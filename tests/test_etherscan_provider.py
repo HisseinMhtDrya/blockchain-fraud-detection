@@ -88,6 +88,55 @@ class EthereumProviderTests(unittest.TestCase):
             {address: True for address in addresses},
         )
 
+    def test_contract_type_retries_rate_limited_batch_items(self) -> None:
+        provider = self.provider()
+        addresses = ["0x" + "a" * 40, "0x" + "b" * 40]
+        calls = 0
+
+        def rpc_response(payload):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return [
+                    {"id": payload[0]["id"], "result": "0x"},
+                    {
+                        "id": payload[1]["id"],
+                        "error": {
+                            "code": 429,
+                            "message": "compute units per second capacity exceeded",
+                        },
+                    },
+                ]
+            return [{"id": payload[0]["id"], "result": "0x6000"}]
+
+        provider._rpc_request = rpc_response
+        with patch("etherscan_provider.time.sleep") as sleep:
+            result = provider.contract_flags(addresses)
+
+        self.assertEqual(result, {addresses[0]: False, addresses[1]: True})
+        self.assertEqual(calls, 2)
+        sleep.assert_called_once_with(1)
+
+    def test_contract_type_fails_explicitly_after_rate_limit_retries(self) -> None:
+        provider = self.provider()
+
+        def rpc_response(payload):
+            return [
+                {
+                    "id": item["id"],
+                    "error": {"code": 429, "message": "rate limited"},
+                }
+                for item in payload
+            ]
+
+        provider._rpc_request = rpc_response
+        with (
+            patch("etherscan_provider.time.sleep"),
+            patch("etherscan_provider.RPC_RATE_LIMIT_RETRIES", 1),
+            self.assertRaisesRegex(EthereumProviderError, "rate-limiting"),
+        ):
+            provider.contract_flags(["0x" + "a" * 40])
+
 
 if __name__ == "__main__":
     unittest.main()

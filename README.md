@@ -104,18 +104,32 @@ contrat, puis renvoie le score et les contributions SHAP. Une alerte positive
 n'est envoyée au contrat configuré que si la requête contient
 `autoriser_enregistrement_alerte: true` ; par défaut, analyser n'envoie aucune
 transaction. L'interface exige de cocher explicitement la case d'autorisation
-avant l'écriture. Les transferts ERC-721/ERC-1155 ne sont pas utilisés comme
-caractéristiques ERC-20. Les
-requêtes à historique incomplet, une API indisponible ou un RPC autre que
-mainnet sont refusés ; le projet ne bascule pas silencieusement vers des données
-partielles. Les contributions SHAP ne sont pas causales, et l'analyse reste
-expérimentale. Le détail des métriques mesurées est dans
-`reports\ethereum_model_training.md`. Le contrat des colonnes, l'ordre, les
-unités et les limites de comparabilité entre agrégats mensuels publiés et
-reconstitution live est décrit dans
+avant l'écriture. Une notification visible signale désormais chaque risque
+détecté par une analyse Ethereum réelle, même si l'alerte on-chain n'est pas
+autorisée ; elle ne déclenche pas de transaction. Les transferts ERC-721/ERC-1155
+ne sont pas utilisés comme caractéristiques ERC-20. Les requêtes à historique
+incomplet, une API indisponible ou un RPC autre que mainnet sont refusés ; le
+projet ne bascule pas silencieusement vers des données partielles. Les
+contributions SHAP ne sont pas causales, et l'analyse reste expérimentale. Le
+détail des métriques mesurées est dans `reports\ethereum_model_training.md`. Le
+contrat des colonnes, l'ordre, les unités et les limites de comparabilité entre
+agrégats mensuels publiés et reconstitution live est décrit dans
 `reports\ethereum_feature_contract.md`. Le modèle contient 27 colonnes (26
 caractéristiques comportementales plus `is_contract`) et applique
 `sign(x) * log(1 + abs(x))` aux 27.
+
+Sur Render, le nœud Hardhat local n'existe pas et l'application ne bascule pas
+vers localhost. Pour activer le registre d'alertes, configurez dans les
+variables d'environnement du service Render `BLOCKCHAIN_RPC_URL` (RPC Sepolia),
+`BLOCKCHAIN_CONTRACT_ADDRESS` (contrat déployé sur Sepolia) et
+`BLOCKCHAIN_PRIVATE_KEY` (clé d'un reporter distinct, approvisionné en Sepolia
+ETH). Définissez aussi `BLOCKCHAIN_REPORTER_ADDRESS` lors de l'autorisation du
+reporter depuis le propriétaire du contrat. Le contrat doit autoriser cette
+adresse avec `setReporter` avant le redémarrage du service. L'analyse Ethereum
+continue d'utiliser séparément `ETHERSCAN_API_KEY` et `ETHEREUM_RPC_URL` pour
+la lecture d'Ethereum mainnet. Sans cette configuration Sepolia valide, le
+dashboard affiche la blockchain hors ligne ; les analyses restent disponibles,
+mais aucune alerte on-chain ne peut être inscrite.
 
 Les champs requis manquants ou malformés dans une réponse fournisseur sont
 rejetés ; ils ne sont pas remplacés par des zéros. Une adresse sans activité

@@ -16,6 +16,8 @@ PAGE_SIZE = 10_000
 MAX_PAGES_PER_ACTION = 100
 MAX_CONTRACT_LOOKUPS = 20_000
 RPC_BATCH_SIZE = 100
+RPC_RATE_LIMIT_RETRIES = 3
+RPC_RATE_LIMIT_BACKOFF_SECONDS = 1
 
 
 class EthereumProviderError(RuntimeError):
@@ -211,33 +213,73 @@ class EthereumProvider:
                         "params": [address, "latest"],
                     }
                 )
-            response = self._rpc_request(requests)
-            if not isinstance(response, list):
-                raise EthereumProviderError(
-                    "The configured RPC provider does not support JSON-RPC batches."
+            pending = expected_ids
+            retry_count = 0
+            while pending:
+                response = self._rpc_request(
+                    [
+                        request
+                        for request in requests
+                        if request["id"] in pending
+                    ]
                 )
-            received: dict[int, Mapping[str, object]] = {}
-            for item in response:
-                if not isinstance(item, Mapping) or item.get("error"):
+                if not isinstance(response, list):
                     raise EthereumProviderError(
-                        "The RPC could not determine a counterparty contract type."
+                        "The configured RPC provider does not support JSON-RPC batches."
                     )
-                try:
-                    request_id = int(item["id"])
-                except (KeyError, TypeError, ValueError) as error:
+
+                received: dict[int, Mapping[str, object]] = {}
+                for item in response:
+                    if not isinstance(item, Mapping):
+                        raise EthereumProviderError(
+                            "The RPC returned an invalid batch response."
+                        )
+                    try:
+                        request_id = int(item["id"])
+                    except (KeyError, TypeError, ValueError) as error:
+                        raise EthereumProviderError(
+                            "The RPC returned an invalid batch response."
+                        ) from error
+                    if request_id not in pending or request_id in received:
+                        raise EthereumProviderError(
+                            "The RPC returned an invalid batch response."
+                        )
+                    received[request_id] = item
+                if set(received) != set(pending):
                     raise EthereumProviderError(
-                        "The RPC returned an invalid batch response."
-                    ) from error
-                received[request_id] = item
-            if set(received) != set(expected_ids):
-                raise EthereumProviderError(
-                    "The RPC returned an incomplete contract-type batch."
-                )
-            for request_id, address in expected_ids.items():
-                code = received[request_id].get("result")
-                if not isinstance(code, str) or not code.startswith("0x"):
-                    raise EthereumProviderError(
-                        "The RPC returned an invalid contract-code result."
+                        "The RPC returned an incomplete contract-type batch."
                     )
-                flags[address] = code not in ("0x", "0x0")
+
+                rate_limited: dict[int, str] = {}
+                for request_id, item in received.items():
+                    rpc_error = item.get("error")
+                    if rpc_error:
+                        if (
+                            isinstance(rpc_error, Mapping)
+                            and str(rpc_error.get("code")) == "429"
+                        ):
+                            rate_limited[request_id] = pending[request_id]
+                            continue
+                        raise EthereumProviderError(
+                            "The RPC could not determine a counterparty contract type."
+                        )
+
+                    code = item.get("result")
+                    if not isinstance(code, str) or not code.startswith("0x"):
+                        raise EthereumProviderError(
+                            "The RPC returned an invalid contract-code result."
+                        )
+                    flags[pending[request_id]] = code not in ("0x", "0x0")
+
+                pending = rate_limited
+                if pending:
+                    if retry_count >= RPC_RATE_LIMIT_RETRIES:
+                        raise EthereumProviderError(
+                            "The configured RPC is rate-limiting contract-type "
+                            "lookups; retry the analysis shortly."
+                        )
+                    time.sleep(
+                        RPC_RATE_LIMIT_BACKOFF_SECONDS * (2**retry_count)
+                    )
+                    retry_count += 1
         return flags
