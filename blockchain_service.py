@@ -10,7 +10,7 @@ from local_config import load_local_environment
 BASE_DIR = Path(__file__).resolve().parent
 load_local_environment(BASE_DIR / ".env")
 
-RPC_URL = os.getenv("BLOCKCHAIN_RPC_URL", "http://127.0.0.1:8545")
+LOCAL_RPC_URL = "http://127.0.0.1:8545"
 CONTRACT_ADDRESS = os.getenv(
     "BLOCKCHAIN_CONTRACT_ADDRESS",
     "0x5fbdb2315678afecb367f032d93f642f64180aa3",
@@ -53,16 +53,33 @@ def _rpc_endpoint_label(rpc_url: str) -> str:
     return urlparse(rpc_url).hostname or "RPC configuré"
 
 
+def _configured_rpc_url() -> str | None:
+    rpc_url = os.getenv("BLOCKCHAIN_RPC_URL")
+    if rpc_url:
+        return rpc_url
+    if os.getenv("RENDER", "").lower() == "true" or os.getenv("RENDER_SERVICE_ID"):
+        return None
+    return LOCAL_RPC_URL
+
+
 class BlockchainService:
     def __init__(self):
-        self.w3 = Web3(Web3.HTTPProvider(RPC_URL, request_kwargs={"timeout": 5}))
+        self.rpc_url = _configured_rpc_url()
+        if self.rpc_url is None:
+            raise RuntimeError(
+                "BLOCKCHAIN_RPC_URL is not configured; on-chain alerts are disabled."
+            )
+
+        self.w3 = Web3(
+            Web3.HTTPProvider(self.rpc_url, request_kwargs={"timeout": 5})
+        )
 
         if not self.w3.is_connected():
             raise ConnectionError(
-                f"Blockchain inaccessible via {_rpc_endpoint_label(RPC_URL)}."
+                f"Blockchain inaccessible via {_rpc_endpoint_label(self.rpc_url)}."
             )
 
-        private_key = _resolve_signing_key(self.w3.eth.chain_id, RPC_URL)
+        private_key = _resolve_signing_key(self.w3.eth.chain_id, self.rpc_url)
 
         if not ABI_PATH.is_file():
             raise RuntimeError(
@@ -96,7 +113,7 @@ class BlockchainService:
         if not code:
             raise RuntimeError(
                 f"Aucun contrat déployé à l'adresse {self.contract.address} "
-                f"sur {_rpc_endpoint_label(RPC_URL)}. Déployez TransactionAlerts sur ce nœud, "
+                f"sur {_rpc_endpoint_label(self.rpc_url)}. Déployez TransactionAlerts sur ce nœud, "
                 "puis configurez BLOCKCHAIN_CONTRACT_ADDRESS si nécessaire."
             )
 

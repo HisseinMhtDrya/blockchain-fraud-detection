@@ -6,11 +6,30 @@ from blockchain_service import (
     ABI_PATH,
     BlockchainService,
     LOCAL_TEST_PRIVATE_KEY,
+    LOCAL_RPC_URL,
+    _configured_rpc_url,
     _resolve_signing_key,
 )
 
 
 class BlockchainSigningKeyTests(unittest.TestCase):
+    def test_missing_rpc_uses_local_node_outside_render(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertEqual(_configured_rpc_url(), LOCAL_RPC_URL)
+
+    def test_missing_rpc_does_not_fall_back_to_localhost_on_render(self) -> None:
+        with patch.dict("os.environ", {"RENDER": "true"}, clear=True):
+            self.assertIsNone(_configured_rpc_url())
+
+    def test_configured_rpc_is_used_on_render(self) -> None:
+        rpc_url = "https://sepolia.example/rpc"
+        with patch.dict(
+            "os.environ",
+            {"RENDER": "true", "BLOCKCHAIN_RPC_URL": rpc_url},
+            clear=True,
+        ):
+            self.assertEqual(_configured_rpc_url(), rpc_url)
+
     def test_local_hardhat_key_is_only_available_on_loopback(self) -> None:
         self.assertEqual(
             _resolve_signing_key(31337, "http://127.0.0.1:8545"),
