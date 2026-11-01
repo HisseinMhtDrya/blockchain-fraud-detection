@@ -12,10 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent
 load_local_environment(BASE_DIR / ".env")
 
 LOCAL_RPC_URL = "http://127.0.0.1:8545"
-CONTRACT_ADDRESS = os.getenv(
-    "BLOCKCHAIN_CONTRACT_ADDRESS",
-    "0x5fbdb2315678afecb367f032d93f642f64180aa3",
-)
+DEFAULT_CONTRACT_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3"
 
 ABI_PATH = (
     BASE_DIR
@@ -132,7 +129,7 @@ def _resolve_signing_key(chain_id: int, rpc_url: str) -> str:
     if chain_id == 31337 and rpc_host in ("localhost", "127.0.0.1", "::1"):
         return LOCAL_TEST_PRIVATE_KEY
     if chain_id == 11155111:
-        private_key = os.getenv("BLOCKCHAIN_PRIVATE_KEY")
+        private_key = os.getenv("BLOCKCHAIN_PRIVATE_KEY", "").strip()
         if not private_key:
             raise RuntimeError(
                 "BLOCKCHAIN_PRIVATE_KEY doit être configurée localement "
@@ -150,12 +147,19 @@ def _rpc_endpoint_label(rpc_url: str) -> str:
 
 
 def _configured_rpc_url() -> str | None:
-    rpc_url = os.getenv("BLOCKCHAIN_RPC_URL")
+    rpc_url = os.getenv("BLOCKCHAIN_RPC_URL", "").strip()
     if rpc_url:
         return rpc_url
     if os.getenv("RENDER", "").lower() == "true" or os.getenv("RENDER_SERVICE_ID"):
         return None
     return LOCAL_RPC_URL
+
+
+def _configured_contract_address() -> str:
+    return os.getenv(
+        "BLOCKCHAIN_CONTRACT_ADDRESS",
+        DEFAULT_CONTRACT_ADDRESS,
+    ).strip()
 
 
 class BlockchainService:
@@ -188,8 +192,13 @@ class BlockchainService:
             )
             abi = TRANSACTION_ALERTS_ABI
 
+        contract_address = _configured_contract_address()
+        if not Web3.is_address(contract_address):
+            raise RuntimeError(
+                "BLOCKCHAIN_CONTRACT_ADDRESS must be a valid Ethereum address."
+            )
         self.contract = self.w3.eth.contract(
-            address=Web3.to_checksum_address(CONTRACT_ADDRESS),
+            address=Web3.to_checksum_address(contract_address),
             abi=abi,
         )
 

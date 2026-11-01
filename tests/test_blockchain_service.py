@@ -8,6 +8,7 @@ from blockchain_service import (
     LOCAL_TEST_PRIVATE_KEY,
     LOCAL_RPC_URL,
     _configured_rpc_url,
+    _configured_contract_address,
     _resolve_signing_key,
 )
 
@@ -29,6 +30,24 @@ class BlockchainSigningKeyTests(unittest.TestCase):
             clear=True,
         ):
             self.assertEqual(_configured_rpc_url(), rpc_url)
+
+    def test_configured_rpc_trims_render_environment_whitespace(self) -> None:
+        rpc_url = "https://sepolia.example/rpc"
+        with patch.dict(
+            "os.environ",
+            {"RENDER": "true", "BLOCKCHAIN_RPC_URL": f" {rpc_url}\n"},
+            clear=True,
+        ):
+            self.assertEqual(_configured_rpc_url(), rpc_url)
+
+    def test_configured_contract_address_trims_render_environment_whitespace(self) -> None:
+        address = "0x7bcb721ed15786a0372acb0e75c6da901d56139d"
+        with patch.dict(
+            "os.environ",
+            {"BLOCKCHAIN_CONTRACT_ADDRESS": f"{address}\n"},
+            clear=True,
+        ):
+            self.assertEqual(_configured_contract_address(), address)
 
     def test_local_hardhat_key_is_only_available_on_loopback(self) -> None:
         self.assertEqual(
