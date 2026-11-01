@@ -80,6 +80,9 @@ bundle sous `models\ethereum_xgboost`, et produit les métriques/explications
 dans `reports\ethereum_model_metrics.json`, `reports\ethereum_model_training.md`
 et `reports\ethereum_shap_global_importance.csv`.
 `reports\ethereum_dataset_audit.md` décrit la provenance et les limites du corpus.
+Le rapport académique structuré du projet est disponible dans
+[`DELIVERY_REPORT.md`](./DELIVERY_REPORT.md) ; il distingue les résultats
+mesurés, les limites et les exigences de déploiement restant à satisfaire.
 Les caractéristiques sont agrégées par adresse depuis les agrégats mensuels
 publiés ; l'absence de caractéristiques est remplie par zéro et sa couverture
 est explicitement documentée. Le jeu étant sélectionné/équilibré et ses labels
