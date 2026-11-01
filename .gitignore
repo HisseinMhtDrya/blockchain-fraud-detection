@@ -1,0 +1,54 @@
+# Node modules
+/node_modules
+/.venv/
+/.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+
+# Compilation output
+/dist
+
+# pnpm deploy output
+/bundle
+
+# Hardhat Build Artifacts
+/artifacts
+
+# Hardhat compilation (v2) support directory
+/cache
+
+# Typechain output
+/types
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local credential stores and exported secrets
+/.hardhat_keystore/
+/secrets/
+secrets.json
+secrets.*.json
+*.secret
+*.pem
+*.key
+*.p12
+
+# Hardhat coverage reports
+/coverage
+
+# Downloaded Ethereum training artifacts and address splits
+/data/external/ethereum/
+/data/processed/ethereum-address-splits/
+
+# Gas snapshot files
+/.gas-snapshot
+
+# Snapshot cheatcodes output
+/snapshots
+
+# Local application history
+/data/analysis_history.sqlite3
+/data/analysis_history.sqlite3-shm
+/data/analysis_history.sqlite3-wal

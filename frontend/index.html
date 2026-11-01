@@ -1,0 +1,1262 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0f17">
+  <title>Blockchain Fraud Detection</title>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0b0f17;
+      --bg-sidebar: #0e131f;
+      --bg-card: #121826;
+      --bg-card-hover: #1a2234;
+      --border-color: #1e293b;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --blue-primary: #2563eb;
+      --blue-glow: rgba(37, 99, 235, .3);
+      --green-success: #10b981;
+      --red-alert: #ef4444;
+      --yellow-warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      overflow-x: hidden;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
+    .sidebar {
+      width: 260px;
+      min-height: 100vh;
+      padding: 20px 16px;
+      display: flex;
+      flex: 0 0 260px;
+      flex-direction: column;
+      justify-content: space-between;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0 24px;
+      padding: 0 12px;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      box-shadow: 0 0 12px var(--blue-glow);
+      font-size: 18px;
+    }
+    .brand-title { font-size: 16px; font-weight: 700; line-height: 1.2; }
+    .brand-subtitle { margin-top: 3px; color: var(--text-muted); font-size: 11px; }
+    .nav-menu { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .nav-item {
+      width: 100%;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: left;
+      font-size: 14px;
+      transition: background .2s, color .2s;
+    }
+    .nav-item i { width: 18px; text-align: center; }
+    .nav-item:hover { background: var(--bg-card); color: var(--text-main); }
+    .nav-item.active {
+      background: var(--blue-primary);
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 0 15px var(--blue-glow);
+    }
+    .service-status-box {
+      margin: 28px 0 0;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--bg-card);
+    }
+    .status-header { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+    .status-dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: var(--yellow-warning); }
+    .status-dot.online { background: var(--green-success); box-shadow: 0 0 8px var(--green-success); }
+    .status-dot.offline { background: var(--red-alert); box-shadow: 0 0 8px var(--red-alert); }
+    .status-list { display: grid; gap: 9px; color: var(--text-muted); font-size: 12px; }
+    .status-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .status-item i.online { color: var(--green-success); }
+    .status-item i.offline { color: var(--red-alert); }
+
+    .main-wrapper { min-width: 0; height: 100vh; flex: 1; overflow-y: auto; }
+    .top-header {
+      min-height: 88px;
+      padding: 18px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .top-header h1 { margin: 0 0 5px; font-size: 21px; }
+    .top-header p { margin: 0; color: var(--text-muted); font-size: 13px; }
+    .user-profile { display: flex; align-items: center; gap: 11px; }
+    .avatar {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      background: #1e293b;
+      font-weight: 600;
+    }
+    .user-name { font-size: 13px; font-weight: 600; }
+    .user-network { margin-top: 3px; color: var(--text-muted); font-size: 11px; }
+    .content-container { padding: 28px 32px 32px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: flex; flex-direction: column; gap: 22px; }
+    .section-heading h2 { margin: 0 0 6px; font-size: 20px; }
+    .section-heading p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .kpi-card, .chart-card, .table-card, .alert-details-card, .form-card, .settings-card {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--bg-card);
+    }
+    .kpi-card { min-width: 0; padding: 19px; display: flex; flex-direction: column; gap: 12px; }
+    .kpi-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px; }
+    .kpi-icon { width: 33px; height: 33px; flex: 0 0 33px; display: grid; place-items: center; border-radius: 8px; }
+    .kpi-value { overflow: hidden; font-size: 28px; font-weight: 700; text-overflow: ellipsis; }
+    .kpi-badge { min-height: 17px; color: var(--text-muted); font-size: 11px; }
+    .charts-grid, .bottom-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 18px; }
+    .chart-card { min-width: 0; padding: 19px; }
+    .chart-header { min-height: 28px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .chart-header h3, .table-heading h3 { margin: 0; font-size: 14px; }
+    .chart-frame { position: relative; height: 220px; }
+    .chart-empty { height: 100%; display: grid; place-items: center; color: var(--text-muted); text-align: center; font-size: 13px; }
+    .btn-group { display: flex; gap: 3px; padding: 3px; border-radius: 7px; background: var(--bg-sidebar); }
+    .btn-time { padding: 5px 9px; border: 0; border-radius: 5px; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 11px; }
+    .btn-time.active { background: var(--blue-primary); color: #fff; }
+    .table-card { min-width: 0; padding: 19px; overflow: hidden; }
+    .table-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .text-button { padding: 4px 0; border: 0; background: transparent; color: #60a5fa; cursor: pointer; font-size: 12px; }
+    .table-wrap { width: 100%; overflow-x: auto; }
+    table { width: 100%; min-width: 560px; margin-top: 14px; border-collapse: collapse; font-size: 12px; }
+    th { padding: 11px 8px; border-bottom: 1px solid var(--border-color); color: var(--text-muted); text-align: left; font-weight: 500; white-space: nowrap; }
+    td { padding: 12px 8px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .mono { font-family: Consolas, "Courier New", monospace; }
+    .tag-score, .status-pill { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .score-high, .status-fraud { border: 1px solid rgba(239,68,68,.55); background: rgba(239,68,68,.15); color: var(--red-alert); }
+    .score-mid, .status-suspect { border: 1px solid rgba(245,158,11,.5); background: rgba(245,158,11,.13); color: var(--yellow-warning); }
+    .score-low, .status-legit { border: 1px solid rgba(16,185,129,.45); background: rgba(16,185,129,.12); color: var(--green-success); }
+    .empty-row { padding: 30px 10px; color: var(--text-muted); text-align: center; white-space: normal; }
+    .alert-details-card { padding: 19px; display: flex; flex-direction: column; gap: 15px; border-color: rgba(239,68,68,.28); }
+    .alert-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .alert-title { color: var(--red-alert); font-size: 13px; font-weight: 700; }
+    .detail-label { margin-bottom: 4px; color: var(--text-muted); font-size: 11px; }
+    .detail-value { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+    .hash-box { padding: 10px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--bg-sidebar); color: var(--text-muted); font-family: Consolas, monospace; font-size: 11px; overflow-wrap: anywhere; }
+    .btn-blockchain, .primary-button, .secondary-button {
+      min-height: 40px;
+      padding: 10px 14px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--blue-primary);
+      border-radius: 8px;
+      background: transparent;
+      color: #60a5fa;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      transition: background .2s;
+    }
+    .btn-blockchain:hover, .secondary-button:hover { background: var(--blue-glow); }
+    .primary-button { background: var(--blue-primary); color: white; }
+    .primary-button:hover { background: #1d4ed8; }
+    .primary-button:disabled { opacity: .6; cursor: wait; }
+    .banner-footer { padding: 21px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border: 1px solid var(--border-color); border-radius: 12px; background: linear-gradient(135deg, #1e293b, #0f172a); }
+    .banner-left { display: flex; align-items: center; gap: 14px; }
+    .banner-icon { width: 47px; height: 47px; flex: 0 0 47px; display: grid; place-items: center; border-radius: 12px; background: var(--blue-glow); color: #60a5fa; font-size: 22px; }
+    .banner-footer h3 { margin: 0 0 4px; font-size: 14px; }
+    .banner-footer p { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+
+    .form-card { padding: 20px; }
+    .form-grid { display: grid; gap: 16px; }
+    .sample-loader { padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border: 1px solid rgba(37,99,235,.35); border-radius: 10px; background: rgba(37,99,235,.07); }
+    .sample-loader h3 { margin: 0 0 5px; font-size: 14px; }
+    .sample-loader p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+    .advanced-features { margin-top: 10px; }
+    .advanced-features summary { width: fit-content; color: var(--text-muted); cursor: pointer; font-size: 11px; }
+    .advanced-features .feature-input { margin-top: 9px; }
+    .form-label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 600; }
+    .form-help { margin: 6px 0 0; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+    .text-input, .feature-input, .search-input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+      background: var(--bg-sidebar);
+      color: var(--text-main);
+      font-size: 12px;
+    }
+    .text-input:focus, .feature-input:focus, .search-input:focus { border-color: var(--blue-primary); box-shadow: 0 0 0 3px var(--blue-glow); }
+    .feature-input { min-height: 170px; resize: vertical; font-family: Consolas, monospace; line-height: 1.6; }
+    .file-input { max-width: 100%; color: var(--text-muted); font-size: 12px; }
+    .form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .notice { color: var(--text-muted); font-size: 11px; line-height: 1.55; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .history-filters { margin-top: 16px; display: grid; grid-template-columns: minmax(200px, 2fr) repeat(2, minmax(160px, 1fr)); gap: 10px; }
+    .history-filters .text-input { padding: 10px; }
+    .history-pagination { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .history-pagination .secondary-button { min-height: 34px; padding: 7px 10px; }
+    .result-box { padding: 16px; border: 1px solid var(--border-color); border-radius: 9px; background: var(--bg-sidebar); }
+    .result-box[hidden] { display: none; }
+    .result-title { margin: 0 0 12px; font-size: 14px; }
+    .result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .error-message { color: #fca5a5; }
+    .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .settings-card { padding: 18px; }
+    .settings-card h3 { margin: 0 0 8px; font-size: 13px; }
+    .settings-card p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+    .toast { position: fixed; right: 22px; bottom: 22px; z-index: 5; max-width: min(420px, calc(100vw - 32px)); padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 9px; background: #172033; box-shadow: 0 8px 30px #0006; font-size: 12px; }
+    .toast[hidden] { display: none; }
+
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .charts-grid, .bottom-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      body { display: block; }
+      .sidebar { width: 100%; min-height: 0; padding: 12px 14px; display: block; border-right: 0; border-bottom: 1px solid var(--border-color); }
+      .brand { margin: 2px 0 12px; }
+      .nav-menu { grid-template-columns: repeat(5, minmax(90px, 1fr)); gap: 5px; overflow-x: auto; }
+      .nav-item { min-height: 42px; padding: 8px; justify-content: center; gap: 6px; font-size: 10px; white-space: nowrap; }
+      .nav-item i { width: auto; }
+      .service-status-box { margin: 12px 0 0; padding: 10px 12px; }
+      .status-header { margin-bottom: 8px; }
+      .status-list { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .status-item { font-size: 10px; }
+      .top-header { min-height: 76px; padding: 14px 18px; }
+      .top-header h1 { font-size: 17px; }
+      .top-header p { max-width: 440px; font-size: 11px; line-height: 1.45; }
+      .content-container { padding: 18px; }
+    }
+    @media (max-width: 480px) {
+      .user-profile { gap: 7px; }
+      .user-network { max-width: 95px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .avatar { width: 33px; height: 33px; }
+      .top-header { align-items: flex-start; }
+      .status-list { grid-template-columns: 1fr; }
+      .kpi-grid { gap: 10px; }
+      .kpi-card { padding: 13px; }
+      .kpi-top { font-size: 10px; }
+      .kpi-value { font-size: 23px; }
+      .kpi-badge { font-size: 10px; }
+      .chart-card, .table-card, .alert-details-card, .form-card { padding: 14px; }
+      .chart-header { align-items: flex-start; }
+      .chart-header h3 { max-width: 180px; line-height: 1.4; }
+      .result-grid, .settings-grid { grid-template-columns: 1fr; }
+      .history-filters { grid-template-columns: 1fr; }
+      .sample-loader { align-items: flex-start; flex-direction: column; }
+      .banner-footer { align-items: flex-start; }
+      .banner-footer .primary-button { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+        <div><div class="brand-title">Blockchain</div><div class="brand-subtitle">Fraud Detection</div></div>
+      </div>
+      <nav aria-label="Navigation principale">
+        <ul class="nav-menu">
+          <li><button class="nav-item active" type="button" data-tab="dashboard"><i class="fa-solid fa-chart-pie"></i>Tableau de bord</button></li>
+          <li><button class="nav-item" type="button" data-tab="transactions"><i class="fa-solid fa-list-check"></i>Transactions</button></li>
+          <li><button class="nav-item" type="button" data-tab="alerts"><i class="fa-solid fa-triangle-exclamation"></i>Alertes Blockchain</button></li>
+          <li><button class="nav-item" type="button" data-tab="analytics"><i class="fa-solid fa-chart-line"></i>Analyses IA</button></li>
+          <li><button class="nav-item" type="button" data-tab="history"><i class="fa-solid fa-clock-rotate-left"></i>Historique</button></li>
+          <li><button class="nav-item" type="button" data-tab="settings"><i class="fa-solid fa-gear"></i>Paramètres</button></li>
+        </ul>
+      </nav>
+    </div>
+    <section class="service-status-box" aria-label="État des services">
+      <div class="status-header"><span id="overall-dot" class="status-dot"></span><span id="overall-status">Vérification du système</span></div>
+      <div class="status-list">
+        <div class="status-item"><span>API FastAPI</span><i id="api-status-icon" class="fa-solid fa-circle-notch fa-spin" aria-label="Vérification"></i></div>
+        <div class="status-item"><span>Réseau blockchain</span><i id="chain-status-icon" class="fa-solid fa-circle-notch fa-spin" aria-label="Vérification"></i></div>
+        <div class="status-item"><span>Modèle XGBoost</span><i id="model-status-icon" class="fa-solid fa-circle-notch fa-spin" aria-label="Vérification"></i></div>
+      </div>
+    </section>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="top-header">
+      <div>
+        <h1 id="page-title">Bonjour, Analyste</h1>
+        <p id="page-subtitle">Voici un aperçu de l'activité de détection des transactions suspectes.</p>
+      </div>
+      <div class="user-profile">
+        <div class="avatar" aria-hidden="true">AD</div>
+        <div><div class="user-name">Analyste</div><div id="user-network" class="user-network">Connexion en cours…</div></div>
+      </div>
+    </header>
+
+    <main class="content-container">
+      <section id="tab-dashboard" class="tab-content active">
+        <div class="kpi-grid">
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Analyses Bitcoin</span><span class="kpi-icon" style="background:rgba(247,147,26,.12);color:#f7931a"><i class="fa-brands fa-bitcoin"></i></span></div>
+            <div id="kpi-bitcoin" class="kpi-value">—</div><div class="kpi-badge">Transactions Elliptic analysées</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Risques détectés · Bitcoin</span><span class="kpi-icon" style="background:rgba(247,147,26,.12);color:#f7931a"><i class="fa-brands fa-bitcoin"></i></span></div>
+            <div id="kpi-bitcoin-risks" class="kpi-value">—</div><div class="kpi-badge">Classe positive du modèle Elliptic</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Analyses Ethereum</span><span class="kpi-icon" style="background:rgba(108,117,125,.12);color:#6c757d"><i class="fa-brands fa-ethereum"></i></span></div>
+            <div id="kpi-ethereum" class="kpi-value">—</div><div class="kpi-badge">Adresses analysées</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Risques détectés · Ethereum</span><span class="kpi-icon" style="background:rgba(108,117,125,.12);color:#6c757d"><i class="fa-brands fa-ethereum"></i></span></div>
+            <div id="kpi-ethereum-risks" class="kpi-value">—</div><div class="kpi-badge">Classe positive du modèle Ethereum</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Prédictions inscrites on-chain</span><span class="kpi-icon" style="background:rgba(16,185,129,.12);color:#10b981"><i class="fa-solid fa-cube"></i></span></div>
+            <div id="kpi-recorded" class="kpi-value">—</div><div class="kpi-badge">Reçues et confirmées par le contrat</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Total des analyses</span><span class="kpi-icon" style="background:rgba(14,165,233,.12);color:#0ea5e9"><i class="fa-solid fa-chart-line"></i></span></div>
+            <div id="kpi-total" class="kpi-value">—</div><div class="kpi-badge">Bitcoin et Ethereum, volumes séparés ci-dessus</div>
+          </article>
+        </div>
+
+        <div class="charts-grid">
+          <article class="chart-card">
+            <div class="chart-header"><h3>Évolution des analyses</h3><div class="btn-group" aria-label="Période du graphique">
+              <button type="button" class="btn-time active" data-days="7">7j</button><button type="button" class="btn-time" data-days="30">30j</button><button type="button" class="btn-time" data-days="90">90j</button>
+            </div></div>
+            <div class="chart-frame"><canvas id="evolution-chart" aria-label="Évolution des analyses enregistrées"></canvas><div id="evolution-empty" class="chart-empty" hidden>Aucune analyse enregistrée pour cette période.</div></div>
+          </article>
+          <article class="chart-card">
+            <div class="chart-header"><h3>Classes estimées par blockchain</h3></div>
+            <div class="chart-frame"><canvas id="distribution-chart" aria-label="Classes estimées séparément pour Bitcoin et Ethereum"></canvas><div id="distribution-empty" class="chart-empty" hidden>Aucune analyse disponible.</div></div>
+          </article>
+        </div>
+
+        <div class="bottom-grid">
+          <article class="table-card">
+            <div class="table-heading"><h3>Analyses récentes</h3><button class="text-button" type="button" data-go="transactions">Voir l'historique →</button></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>ID</th><th>Transaction</th><th>Chaîne</th><th>Score</th><th>Prédiction</th><th>Blockchain</th></tr></thead>
+              <tbody id="recent-analyses"></tbody>
+            </table></div>
+          </article>
+          <article id="latest-alert" class="alert-details-card">
+            <div class="alert-header"><div class="alert-title"><i class="fa-solid fa-triangle-exclamation"></i> DERNIÈRE PRÉDICTION INSCRITE</div><span id="latest-status" class="status-pill">—</span></div>
+            <div><div class="detail-label">Transaction / adresse</div><div id="latest-id" class="detail-value mono">Aucune alerte</div></div>
+            <div><div class="detail-label">Score de risque</div><div id="latest-score" class="detail-value">—</div></div>
+            <div><div class="detail-label">Adresse du contrat</div><div id="latest-contract" class="hash-box">En attente de connexion</div></div>
+            <div><div class="detail-label">Date d'enregistrement</div><div id="latest-date" class="detail-value">—</div></div>
+            <button class="btn-blockchain" type="button" data-go="alerts">Consulter les alertes <i class="fa-solid fa-arrow-right"></i></button>
+          </article>
+        </div>
+
+        <footer class="banner-footer">
+          <div class="banner-left"><div class="banner-icon"><i class="fa-solid fa-shield-halved"></i></div><div>
+            <h3>Une technologie au service de la sécurité financière</h3>
+            <p>Les modèles estiment un risque à partir des caractéristiques disponibles. Une prédiction n'est pas une preuve de fraude.</p>
+          </div></div>
+          <button class="primary-button" type="button" data-go="transactions">Analyser une transaction →</button>
+        </footer>
+      </section>
+
+      <section id="tab-transactions" class="tab-content">
+        <div class="section-heading"><h2>Analyse des transactions</h2><p>Chargez un exemple Elliptic en un clic ou fournissez les 166 caractéristiques numériques, puis lancez l'analyse. Le modèle évalue les caractéristiques et non le seul identifiant.</p></div>
+        <form id="prediction-form" class="form-card form-grid">
+          <div class="sample-loader">
+            <div>
+              <h3>Essayer tout de suite</h3>
+              <p>Le fichier Elliptic du projet contient déjà des transactions d'exemple. Le bouton remplit les 166 caractéristiques et l'identifiant automatiquement.</p>
+            </div>
+            <button id="load-sample" class="secondary-button" type="button"><i class="fa-solid fa-file-import"></i> Charger l'exemple Elliptic</button>
+          </div>
+          <div>
+            <label class="form-label" for="transaction-id">Identifiant de transaction</label>
+            <input id="transaction-id" class="text-input" type="text" maxlength="200" placeholder="Ex. tx-001">
+            <p class="form-help">L'identifiant de l'exemple est prérempli. Conservez-le pour retrouver l'analyse dans l'historique et demander son inscription sur le réseau connecté.</p>
+          </div>
+          <div>
+            <label class="form-label" for="csv-file">Ou charger un fichier CSV</label>
+            <input id="csv-file" class="file-input" type="file" accept=".csv,text/csv">
+            <p class="form-help">Choisis <strong>elliptic_txs_features.csv</strong> (pas le fichier classes ni edgelist). Seule la première ligne sera lue.</p>
+          </div>
+          <div>
+            <label class="form-label" for="features">Données prêtes pour le modèle</label>
+            <p id="feature-count" class="form-help">Aucune transaction chargée. Cliquez sur « Charger l'exemple Elliptic ».</p>
+            <details class="advanced-features">
+              <summary>Afficher ou coller les 166 valeurs (option avancée)</summary>
+              <textarea id="features" class="feature-input" required placeholder="Les 166 valeurs s'afficheront ici après le chargement."></textarea>
+            </details>
+          </div>
+          <div class="form-actions">
+            <button id="analyze-button" class="primary-button" type="submit" disabled><i class="fa-solid fa-magnifying-glass"></i> 1. Charger un exemple d'abord</button>
+            <span class="notice">La prédiction est expérimentale et n'est pas une preuve de fraude.</span>
+          </div>
+          <div id="load-instructions" class="notice">Étape 1 : cliquez sur « Charger l'exemple Elliptic ». Étape 2 : quand le compteur affiche 166 / 166, cliquez sur « Analyser la transaction ».</div>
+          <div id="prediction-result" class="result-box" hidden aria-live="polite"></div>
+        </form>
+        <form id="ethereum-address-form" class="form-card form-grid">
+          <div class="section-heading">
+            <h2>Analyse d'une adresse Ethereum</h2>
+            <p>L'analyse réelle récupère l'historique Ethereum via Etherscan et un RPC mainnet. Les noms, l'ordre et les transformations des caractéristiques sont partagés avec le modèle ; l'équivalence sémantique complète avec le corpus historique reste une limite documentée. L'analyse n'envoie aucune transaction sans autorisation explicite cochée.</p>
+          </div>
+          <div>
+            <label class="form-label" for="ethereum-address">Adresse Ethereum (mainnet)</label>
+            <input id="ethereum-address" class="text-input mono" type="text" inputmode="text" autocomplete="off" required pattern="0x[0-9a-fA-F]{40}" maxlength="42" placeholder="0x…">
+            <p id="ethereum-live-help" class="form-help">Configurez ETHERSCAN_API_KEY et ETHEREUM_RPC_URL (chain ID 1) pour activer l'analyse réelle. Sans ces accès, utilisez la démo locale ci-dessous.</p>
+          </div>
+          <label class="form-help"><input id="ethereum-authorize-alert" type="checkbox"> J'autorise explicitement l'envoi d'une transaction d'alerte si le modèle détecte un risque. L'analyse seule n'envoie aucune transaction.</label>
+          <div class="form-actions">
+            <button id="analyze-ethereum-button" class="primary-button" type="submit" disabled><i class="fa-brands fa-ethereum"></i> Analyser l'adresse réelle</button>
+            <span class="notice">Un score expérimental n'est pas une preuve de fraude ou de blanchiment.</span>
+          </div>
+          <div class="form-actions">
+            <button id="ethereum-demo-button" class="secondary-button" type="button" disabled><i class="fa-solid fa-flask"></i> Tester avec l'exemple local</button>
+            <span id="ethereum-demo-help" class="form-help">Démarrez le réseau local Hardhat pour activer cette simulation.</span>
+          </div>
+          <div id="ethereum-address-result" class="result-box" hidden aria-live="polite"></div>
+        </form>
+      </section>
+
+      <section id="tab-alerts" class="tab-content">
+        <div class="section-heading"><h2>Centre des alertes blockchain</h2><p id="alerts-network-description">Registre des alertes confirmées sur le réseau du contrat TransactionAlerts.</p></div>
+        <article class="table-card">
+          <div class="table-heading"><h3>Alertes on-chain</h3><button id="refresh-alerts" class="text-button" type="button"><i class="fa-solid fa-rotate"></i> Actualiser</button></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Transaction</th><th>Score</th><th>Classification</th><th>Date</th><th>Signataire</th></tr></thead>
+            <tbody id="all-alerts"></tbody>
+          </table></div>
+          <p class="form-help">Les données de cette chaîne locale sont réinitialisées lorsque le nœud Hardhat est arrêté.</p>
+        </article>
+      </section>
+
+      <section id="tab-analytics" class="tab-content">
+        <div class="section-heading"><h2>Analyses IA &amp; Performances</h2><p>Métriques des modèles d'apprentissage automatique pour Bitcoin et Ethereum.</p></div>
+        
+        <div class="charts-grid">
+          <article class="chart-card"><div class="chart-header"><h3>Classes estimées par blockchain</h3></div><div class="chart-frame"><canvas id="analytics-chart"></canvas><div id="analytics-empty" class="chart-empty" hidden>Aucune analyse disponible pour calculer la répartition.</div></div></article>
+          <article class="chart-card"><div class="chart-header"><h3>Indicateurs observés</h3></div><div class="settings-grid">
+            <div class="settings-card"><h3>Bitcoin · modèle Elliptic</h3><p id="analytics-bitcoin-summary">—</p></div>
+            <div class="settings-card"><h3>Ethereum · modèle comportemental</h3><p id="analytics-ethereum-summary">—</p></div>
+            <div class="settings-card"><h3>Enregistrements on-chain confirmés</h3><p id="analytics-recorded">—</p></div>
+            <div class="settings-card"><h3>Évaluation du modèle</h3><p>La précision, le rappel et le F1 ne sont pas calculables sans comparer les prédictions aux classes de référence.</p></div>
+          </div></article>
+        </div>
+
+        <div class="section-heading" style="margin-top: 32px;"><h2>Métriques Modèle Ethereum</h2><p>Performance du modèle XGBoost entraîné sur le dataset Ethereum (test set).</p></div>
+        <div class="settings-grid">
+          <div class="settings-card"><h3>Accuracy</h3><p id="eth-accuracy">—</p></div>
+          <div class="settings-card"><h3>Precision (scam)</h3><p id="eth-precision">—</p></div>
+          <div class="settings-card"><h3>Recall (scam)</h3><p id="eth-recall">—</p></div>
+          <div class="settings-card"><h3>F1-score (scam)</h3><p id="eth-f1">—</p></div>
+          <div class="settings-card"><h3>ROC-AUC</h3><p id="eth-roc-auc">—</p></div>
+          <div class="settings-card"><h3>PR-AUC</h3><p id="eth-pr-auc">—</p></div>
+        </div>
+        <p id="eth-metrics-error" class="form-help" role="alert" hidden></p>
+
+        <div class="section-heading" style="margin-top: 32px;"><h2>Importance des Caractéristiques (SHAP)</h2><p>Top 10 caractéristiques les plus influentes pour le modèle Ethereum.</p></div>
+        <article class="table-card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Rang</th><th>Caractéristique</th><th>Importance moyenne |SHAP|</th></tr></thead>
+            <tbody id="shap-importance"></tbody>
+          </table></div>
+          <p id="eth-shap-error" class="form-help" role="alert" hidden></p>
+        </article>
+      </section>
+
+      <section id="tab-history" class="tab-content">
+        <div class="section-heading"><h2>Historique des Analyses</h2><p>Historique complet de toutes les analyses effectuées, avec filtres et pagination.</p></div>
+        <article class="table-card">
+          <div class="table-heading"><h3>Analyses précédentes</h3><button id="refresh-history" class="text-button" type="button"><i class="fa-solid fa-rotate"></i> Actualiser</button></div>
+          <div class="history-filters">
+            <label class="sr-only" for="history-search">Rechercher une analyse</label>
+            <input id="history-search" class="search-input" type="search" placeholder="Rechercher par identifiant de transaction ou numéro d'analyse">
+            <label class="sr-only" for="history-class-filter">Filtrer par classe estimée</label>
+            <select id="history-class-filter" class="text-input"><option value="">Toutes les classes</option><option value="1">Risque détecté</option><option value="0">Risque non détecté</option></select>
+            <label class="sr-only" for="history-type-filter">Filtrer par blockchain analysée</label>
+            <select id="history-type-filter" class="text-input"><option value="">Toutes les blockchains</option><option value="bitcoin">Bitcoin</option><option value="ethereum">Ethereum</option></select>
+            <label class="sr-only" for="history-chain-filter">Filtrer par enregistrement blockchain</label>
+            <select id="history-chain-filter" class="text-input"><option value="">Tous les états blockchain</option><option value="true">Enregistrées</option><option value="false">Non enregistrées</option></select>
+          </div>
+          <p id="history-count" class="form-help" aria-live="polite"></p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Analyse</th><th>Transaction / adresse</th><th>Chaîne</th><th>Classe estimée</th><th>Probabilité positive</th><th>Risque</th><th>Blockchain</th><th>Date</th></tr></thead>
+            <tbody id="history-rows"></tbody>
+          </table></div>
+          <div class="history-pagination"><button id="history-previous" class="secondary-button" type="button">← Précédent</button><span id="history-page" class="form-help"></span><button id="history-next" class="secondary-button" type="button">Suivant →</button></div>
+        </article>
+      </section>
+
+      <section id="tab-settings" class="tab-content">
+        <div class="section-heading"><h2>Configuration de l'application</h2><p>État des services et des prérequis Ethereum détectés par l'API.</p></div>
+        <div class="settings-grid">
+          <article class="settings-card"><h3><i class="fa-solid fa-server"></i> API FastAPI</h3><p id="setting-api">Vérification en cours…</p></article>
+          <article class="settings-card"><h3><i class="fa-solid fa-cube"></i> Réseau blockchain</h3><p id="setting-network">Vérification en cours…</p></article>
+          <article class="settings-card"><h3><i class="fa-solid fa-file-contract"></i> Contrat TransactionAlerts</h3><p id="setting-contract" class="mono">Vérification en cours…</p></article>
+          <article class="settings-card"><h3><i class="fa-solid fa-brain"></i> Modèle Bitcoin Elliptic</h3><p id="setting-model">Vérification en cours…</p></article>
+          <article class="settings-card"><h3><i class="fa-brands fa-ethereum"></i> Modèle Ethereum</h3><p id="setting-ethereum-model">Vérification en cours…</p></article>
+          <article class="settings-card"><h3><i class="fa-solid fa-link"></i> Sources Ethereum live</h3><p id="setting-ethereum-provider">Vérification en cours…</p></article>
+        </div>
+        <p class="notice">Les clés privées de développement Hardhat sont publiques et réservées aux tests locaux. Ne les utilisez jamais sur un réseau réel.</p>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script>
+    const state = { alerts: [], analyses: [], status: null, summary: null, historyPage: 0, historyTotal: 0, historyLimit: 20, evolutionChart: null, distributionChart: null, analyticsChart: null, periodDays: 7 };
+    const pageContent = {
+      dashboard: ["Bonjour, Analyste", "Voici un aperçu des alertes actuellement enregistrées sur la blockchain locale."],
+      transactions: ["Analyse des transactions", "Soumettez une transaction au modèle de détection XGBoost."],
+      alerts: ["Alertes Blockchain", "Consultez le registre des alertes du contrat TransactionAlerts."],
+      analytics: ["Analyses IA & Performances", "Visualisez les tendances des alertes réellement enregistrées."],
+      history: ["Historique des Analyses", "Consultez l'historique complet de toutes les analyses effectuées."],
+      settings: ["Paramètres", "État des services et configuration réseau de cette instance."]
+    };
+    const byId = (id) => document.getElementById(id);
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[character]);
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return "—";
+      return new Date(Number(timestamp) * 1000).toLocaleString("fr-FR", {
+        dateStyle: "short", timeStyle: "short"
+      });
+    }
+
+    function formatIsoDate(timestamp) {
+      if (!timestamp) return "—";
+      return new Date(timestamp).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
+    }
+
+    function classification(alert) {
+      if (alert.illicite) return ["Risque détecté", "status-fraud"];
+      if (Number(alert.score_risque) >= 50) return ["Risque à examiner", "status-suspect"];
+      return ["Risque non détecté", "status-legit"];
+    }
+
+    function scoreClass(score) {
+      if (Number(score) >= 70) return "score-high";
+      if (Number(score) >= 40) return "score-mid";
+      return "score-low";
+    }
+
+    async function api(path, options) {
+      const response = await fetch(path, options);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || `Erreur HTTP ${response.status}`);
+      return data;
+    }
+
+    function setServiceIcon(id, online) {
+      const icon = byId(id);
+      icon.className = online ? "fa-solid fa-check online" : "fa-solid fa-xmark offline";
+      icon.setAttribute("aria-label", online ? "Disponible" : "Indisponible");
+    }
+
+    function renderStatus(status) {
+      state.status = status;
+      setServiceIcon("api-status-icon", status.api_connectee);
+      setServiceIcon("chain-status-icon", status.blockchain_connectee);
+      setServiceIcon("model-status-icon", status.modele_charge);
+      const applicationReady = status.api_connectee && status.modele_charge;
+      const allOnline = applicationReady && status.blockchain_connectee;
+      byId("overall-dot").className = `status-dot ${applicationReady ? "online" : "offline"}`;
+      byId("overall-status").textContent = allOnline
+        ? "Système opérationnel"
+        : applicationReady
+          ? "Analyse disponible — blockchain hors ligne"
+          : "Service indisponible";
+      byId("user-network").textContent = status.reseau || "Blockchain hors ligne";
+      byId("setting-api").textContent = status.api_connectee ? "Connectée — API FastAPI" : "Indisponible";
+      byId("setting-network").textContent = status.reseau || status.erreur_blockchain || "Réseau blockchain indisponible";
+      byId("setting-contract").textContent = status.adresse_contrat || "Contrat non chargé";
+      byId("setting-model").textContent = status.modele_charge ? "XGBoost chargé — 166 caractéristiques attendues" : "Modèle indisponible";
+      byId("setting-ethereum-model").textContent = status.analyseur_ethereum_disponible
+        ? "XGBoost Ethereum + explications SHAP disponibles"
+        : status.erreur_modele_ethereum || "Modèle Ethereum non entraîné";
+      byId("setting-ethereum-provider").textContent = status.ethereum_provider_configured
+        ? "Identifiants configurés — connexion vérifiée lors de l'analyse"
+        : "Configuration manquante : ETHERSCAN_API_KEY et/ou ETHEREUM_RPC_URL";
+      byId("analyze-ethereum-button").disabled = !status.ethereum_provider_configured;
+      byId("ethereum-live-help").textContent = status.ethereum_provider_configured
+        ? "Accès configurés ; le RPC sera vérifié sur Ethereum mainnet (chain ID 1) au lancement de l'analyse."
+        : "Analyse live désactivée : configurez ETHERSCAN_API_KEY et ETHEREUM_RPC_URL (chain ID 1). Vous pouvez tester le modèle avec la simulation locale.";
+      const localEthereumDemoReady = status.analyseur_ethereum_disponible
+        && status.blockchain_connectee
+        && status.reseau === "Hardhat local (chain ID 31337)";
+      byId("ethereum-demo-button").disabled = !localEthereumDemoReady;
+      byId("ethereum-demo-help").textContent = localEthereumDemoReady
+        ? "Exemple synthétique : XGBoost et SHAP, sans Etherscan, sans transaction et sans entrée dans l'historique."
+        : "Démarrez npm run start:local pour activer la simulation Ethereum sur Hardhat.";
+      byId("latest-contract").textContent = status.adresse_contrat || "Contrat non connecté";
+      byId("alerts-network-description").textContent = status.reseau
+        ? `Registre des alertes confirmées sur ${status.reseau} via le contrat TransactionAlerts.`
+        : "Aucune connexion au contrat : aucune alerte on-chain n'est actuellement consultable.";
+    }
+
+    function renderTable(alerts, targetId, emptyText, compact = false) {
+      const body = byId(targetId);
+      if (!alerts.length) {
+        const columns = 6;
+        body.innerHTML = `<tr><td class="empty-row" colspan="${columns}">${escapeHtml(emptyText)}</td></tr>`;
+        return;
+      }
+      body.innerHTML = alerts.map((alert) => {
+        const [label, statusClass] = classification(alert);
+        const id = Number(alert.id);
+        const txId = escapeHtml(alert.transaction_id || "—");
+        const date = escapeHtml(formatDate(alert.timestamp));
+        const score = Number(alert.score_risque);
+        if (compact) {
+          return `<tr>
+            <td>#${id}</td><td class="mono" title="${txId}">${txId.length > 24 ? `${txId.slice(0, 21)}…` : txId}</td><td>Origine non encodée</td>
+            <td><span class="tag-score ${scoreClass(score)}">${score}/100</span></td>
+            <td><span class="status-pill ${statusClass}">${label}</span></td><td>${date}</td>
+          </tr>`;
+        }
+        return `<tr>
+          <td>#${id}</td><td class="mono" title="${txId}">${txId.length > 24 ? `${txId.slice(0, 21)}…` : txId}</td>
+          <td><span class="tag-score ${scoreClass(score)}">${score}/100</span></td>
+          <td><span class="status-pill ${statusClass}">${label}</span></td><td>${date}</td>
+          <td class="mono" title="${escapeHtml(alert.reporter)}">${escapeHtml(alert.reporter || "—").slice(0, 12)}…</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function dateKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function renderCharts() {
+      const summary = state.summary || {};
+      const byBlockchain = summary.par_blockchain || {};
+      const bitcoin = byBlockchain.bitcoin || {};
+      const ethereum = byBlockchain.ethereum || {};
+      const hasAnalyses = Number(summary.total_analyses || 0) > 0;
+      byId("distribution-chart").hidden = !hasAnalyses;
+      byId("distribution-empty").hidden = hasAnalyses;
+      byId("analytics-chart").hidden = !hasAnalyses;
+      byId("analytics-empty").hidden = hasAnalyses;
+
+      if (typeof Chart === "undefined") {
+        byId("distribution-chart").hidden = true;
+        byId("distribution-empty").hidden = false;
+        byId("distribution-empty").textContent = "Graphiques indisponibles : vérifiez la connexion à Chart.js.";
+        byId("analytics-chart").hidden = true;
+        byId("analytics-empty").hidden = false;
+        byId("analytics-empty").textContent = "Graphiques indisponibles : vérifiez la connexion à Chart.js.";
+        byId("evolution-chart").hidden = true;
+        byId("evolution-empty").hidden = false;
+        byId("evolution-empty").textContent = "Graphiques indisponibles : vérifiez la connexion à Chart.js.";
+        return;
+      }
+
+      const days = Array.from({ length: state.periodDays }, (_, index) => {
+        const day = new Date();
+        day.setHours(0, 0, 0, 0);
+        day.setDate(day.getDate() - (state.periodDays - index - 1));
+        return day;
+      });
+      const counts = new Map(days.map((day) => [dateKey(day), {
+        bitcoin: { total: 0, risks: 0 },
+        ethereum: { total: 0, risks: 0 }
+      }]));
+      (summary.evolution || []).forEach((entry) => {
+        const day = new Date(`${entry.jour}T00:00:00`);
+        if (Number.isNaN(day.getTime()) || day < days[0]) return;
+        const bucket = counts.get(dateKey(day));
+        const chain = entry.type_analyse;
+        if (bucket && bucket[chain]) {
+          bucket[chain].total = Number(entry.total);
+          bucket[chain].risks = Number(entry.risques_detectes);
+        }
+      });
+      const evolutionHasData = [...counts.values()].some((entry) =>
+        entry.bitcoin.total + entry.ethereum.total > 0
+      );
+      byId("evolution-chart").hidden = !evolutionHasData;
+      byId("evolution-empty").hidden = evolutionHasData;
+      const evolutionData = {
+        labels: days.map((day) => day.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })),
+        datasets: [
+          { label: "Bitcoin · analyses", data: days.map((day) => counts.get(dateKey(day)).bitcoin.total), borderColor: "#f7931a", backgroundColor: "rgba(247,147,26,.1)", fill: false, tension: .35 },
+          { label: "Bitcoin · risques détectés", data: days.map((day) => counts.get(dateKey(day)).bitcoin.risks), borderColor: "#b45309", backgroundColor: "rgba(180,83,9,.1)", fill: false, tension: .35 },
+          { label: "Ethereum · analyses", data: days.map((day) => counts.get(dateKey(day)).ethereum.total), borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,.1)", fill: false, tension: .35 },
+          { label: "Ethereum · risques détectés", data: days.map((day) => counts.get(dateKey(day)).ethereum.risks), borderColor: "#1d4ed8", backgroundColor: "rgba(29,78,216,.1)", fill: false, tension: .35 }
+        ]
+      };
+      const chartOptions = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: "#94a3b8", boxWidth: 10, font: { size: 10 } } } },
+        scales: {
+          x: { grid: { color: "#1e293b" }, ticks: { color: "#94a3b8" } },
+          y: { beginAtZero: true, ticks: { precision: 0, color: "#94a3b8" }, grid: { color: "#1e293b" } }
+        }
+      };
+      const distributionData = {
+        labels: ["Risque non détecté", "Risque détecté"],
+        datasets: [
+          {
+            label: "Bitcoin",
+            data: [
+              Number(bitcoin.total_analyses || 0) - Number(bitcoin.risques_detectes || 0),
+              Number(bitcoin.risques_detectes || 0)
+            ],
+            backgroundColor: ["rgba(247,147,26,.45)", "#f7931a"],
+            borderColor: ["#f7931a", "#f7931a"],
+            borderWidth: 1
+          },
+          {
+            label: "Ethereum",
+            data: [
+              Number(ethereum.total_analyses || 0) - Number(ethereum.risques_detectes || 0),
+              Number(ethereum.risques_detectes || 0)
+            ],
+            backgroundColor: ["rgba(96,165,250,.45)", "#3b82f6"],
+            borderColor: ["#3b82f6", "#3b82f6"],
+            borderWidth: 1
+          }
+        ]
+      };
+      const distributionOptions = {
+        ...chartOptions,
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#94a3b8", padding: 18, font: { size: 11 } } }
+        }
+      };
+
+      if (state.evolutionChart) {
+        state.evolutionChart.data = evolutionData;
+        state.evolutionChart.update();
+      } else {
+        state.evolutionChart = new Chart(byId("evolution-chart"), { type: "line", data: evolutionData, options: chartOptions });
+      }
+      [ ["distributionChart", "distribution-chart"], ["analyticsChart", "analytics-chart"] ].forEach(([stateKey, canvasId]) => {
+        if (state[stateKey]) {
+          state[stateKey].data = distributionData;
+          state[stateKey].update();
+        } else {
+          state[stateKey] = new Chart(byId(canvasId), { type: "bar", data: distributionData, options: distributionOptions });
+        }
+      });
+    }
+
+    function renderAlerts(alerts, total) {
+      state.alerts = alerts;
+      renderTable(alerts, "all-alerts", "Aucune alerte disponible. Analysez une transaction avec un identifiant.", false);
+
+      const latest = alerts[0];
+      if (!latest) {
+        byId("latest-status").className = "status-pill";
+        byId("latest-status").textContent = "En attente";
+        byId("latest-id").textContent = "Aucune alerte";
+        byId("latest-score").textContent = "—";
+        byId("latest-score").style.color = "";
+        byId("latest-date").textContent = "—";
+      } else {
+        const [label, cssClass] = classification(latest);
+        byId("latest-status").className = `status-pill ${cssClass}`;
+        byId("latest-status").textContent = label;
+        byId("latest-id").textContent = latest.transaction_id;
+        byId("latest-score").textContent = `${latest.score_risque}/100`;
+        byId("latest-score").style.color = Number(latest.score_risque) >= 70 ? "var(--red-alert)" : "var(--text-main)";
+        byId("latest-date").textContent = formatDate(latest.timestamp);
+      }
+      renderCharts();
+    }
+
+    function renderRecentAnalyses(analyses) {
+      const body = byId("recent-analyses");
+      if (!analyses.length) {
+        body.innerHTML = '<tr><td class="empty-row" colspan="6">Aucune analyse enregistrée. Analysez une transaction pour commencer.</td></tr>';
+        return;
+      }
+      body.innerHTML = analyses.slice(0, 5).map((analysis) => {
+        const illicit = Number(analysis.classe_predite) === 1;
+        const label = illicit ? "Risque détecté" : "Risque non détecté";
+        const css = illicit ? "status-fraud" : "status-legit";
+        return `<tr>
+          <td>#${Number(analysis.id)}</td>
+          <td class="mono" title="${escapeHtml(analysis.transaction_id || "")}">${escapeHtml(analysis.transaction_id || "Sans identifiant")}</td>
+          <td>${analysis.type_analyse === "ethereum" ? "Ethereum" : "Bitcoin"}</td>
+          <td><span class="tag-score ${scoreClass(analysis.score_risque)}">${Number(analysis.score_risque)}/100</span></td>
+          <td><span class="status-pill ${css}">${label}</span></td>
+          <td>${analysis.blockchain_enregistre ? '<span class="status-pill status-legit">Inscrite</span>' : '<span class="form-help">Non inscrite</span>'}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function renderHistory(data) {
+      state.analyses = data.analyses;
+      state.historyTotal = data.total;
+      const body = byId("history-rows");
+      if (!data.analyses.length) {
+        body.innerHTML = '<tr><td class="empty-row" colspan="8">Aucun résultat. Modifiez les filtres ou lancez une analyse.</td></tr>';
+      } else {
+        body.innerHTML = data.analyses.map((analysis) => {
+          const illicit = Number(analysis.classe_predite) === 1;
+          const classificationLabel = illicit ? "Risque détecté" : "Risque non détecté";
+          const classificationClass = illicit ? "status-fraud" : "status-legit";
+          const chainLabel = analysis.type_analyse === "ethereum" ? "Ethereum" : "Bitcoin";
+          const chainStatus = analysis.blockchain_enregistre
+            ? `<a class="text-button mono" href="#" title="${escapeHtml(analysis.hash_transaction_blockchain)}" data-copy-hash="${escapeHtml(analysis.hash_transaction_blockchain)}">Inscrite · ${escapeHtml((analysis.hash_transaction_blockchain || "").slice(0, 10))}…</a>`
+            : `<span class="form-help" title="${escapeHtml(analysis.erreur_blockchain || "Aucun identifiant ou inscription non demandée")}">Non inscrite</span>`;
+          return `<tr>
+            <td>#${Number(analysis.id)}</td>
+            <td class="mono" title="${escapeHtml(analysis.transaction_id || "")}">${escapeHtml(analysis.transaction_id || "—")}</td>
+            <td>${chainLabel}</td>
+            <td><span class="status-pill ${classificationClass}">${classificationLabel}</span></td>
+            <td>${(Number(analysis.probabilite_illicite) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}%</td>
+            <td><span class="tag-score ${scoreClass(analysis.score_risque)}">${Number(analysis.score_risque)}/100</span></td>
+            <td>${chainStatus}</td>
+            <td>${escapeHtml(formatIsoDate(analysis.cree_le))}</td>
+          </tr>`;
+        }).join("");
+      }
+
+      const first = data.total === 0 ? 0 : state.historyPage * state.historyLimit + 1;
+      const last = Math.min((state.historyPage + 1) * state.historyLimit, data.total);
+      byId("history-count").textContent = `${data.total.toLocaleString("fr-FR")} analyse(s) trouvée(s)`;
+      byId("history-page").textContent = data.total ? `${first}–${last} sur ${data.total}` : "Aucun résultat";
+      byId("history-previous").disabled = state.historyPage === 0;
+      byId("history-next").disabled = last >= data.total;
+    }
+
+    function formatMetric(value) {
+      return `${(Number(value) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}%`;
+    }
+
+    async function loadEthereumMetrics() {
+      const errorBox = byId("eth-metrics-error");
+      try {
+        const data = await api("/api/ethereum/metrics");
+        const metrics = data.training?.metrics?.test;
+        if (!metrics) throw new Error("Les métriques du jeu de test sont absentes.");
+        byId("eth-accuracy").textContent = formatMetric(metrics.accuracy);
+        byId("eth-precision").textContent = formatMetric(metrics.precision_positive);
+        byId("eth-recall").textContent = formatMetric(metrics.recall_positive);
+        byId("eth-f1").textContent = formatMetric(metrics.f1_positive);
+        byId("eth-roc-auc").textContent = formatMetric(metrics.roc_auc);
+        byId("eth-pr-auc").textContent = formatMetric(metrics.average_precision);
+        errorBox.hidden = true;
+      } catch (error) {
+        errorBox.textContent = `Métriques Ethereum indisponibles : ${error.message}`;
+        errorBox.hidden = false;
+      }
+    }
+
+    async function loadShapImportance() {
+      const body = byId("shap-importance");
+      const errorBox = byId("eth-shap-error");
+      try {
+        const features = await api("/api/ethereum/shap-importance");
+        if (!Array.isArray(features) || features.length === 0) {
+          throw new Error("Aucune importance SHAP publiée.");
+        }
+        body.innerHTML = features.slice(0, 10).map((item, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td class="mono">${escapeHtml(item.feature)}</td>
+            <td>${Number(item.mean_abs_shap).toLocaleString("fr-FR", { maximumFractionDigits: 5 })}</td>
+          </tr>
+        `).join("");
+        errorBox.hidden = true;
+      } catch (error) {
+        body.innerHTML = '<tr><td class="empty-row" colspan="3">Importances SHAP indisponibles.</td></tr>';
+        errorBox.textContent = error.message;
+        errorBox.hidden = false;
+      }
+    }
+
+    async function refreshHistory() {
+      const params = new URLSearchParams({ limite: String(state.historyLimit), offset: String(state.historyPage * state.historyLimit) });
+      const query = byId("history-search").value.trim();
+      const predictedClass = byId("history-class-filter").value;
+      const analysisType = byId("history-type-filter").value;
+      const blockchainRecorded = byId("history-chain-filter").value;
+      if (query) params.set("query", query);
+      if (predictedClass !== "") params.set("classe_predite", predictedClass);
+      if (analysisType !== "") params.set("type_analyse", analysisType);
+      if (blockchainRecorded !== "") params.set("blockchain_enregistre", blockchainRecorded);
+      try {
+        const data = await api(`/api/history?${params}`);
+        renderHistory(data);
+      } catch (error) {
+        byId("history-rows").innerHTML = `<tr><td class="empty-row error-message" colspan="8">${escapeHtml(error.message)}</td></tr>`;
+        byId("history-count").textContent = "Impossible de charger l'historique.";
+      }
+    }
+
+    async function refreshDashboard() {
+      try {
+        const [status, alertData, summary, recentData] = await Promise.all([
+          api("/api/status"),
+          api("/api/alerts?limite=500"),
+          api("/api/analytics"),
+          api("/api/history?limite=5&offset=0")
+        ]);
+        renderStatus(status);
+        state.summary = summary;
+        const bitcoin = summary.par_blockchain?.bitcoin || {};
+        const ethereum = summary.par_blockchain?.ethereum || {};
+        byId("kpi-bitcoin").textContent = Number(bitcoin.total_analyses || 0).toLocaleString("fr-FR");
+        byId("kpi-bitcoin-risks").textContent = Number(bitcoin.risques_detectes || 0).toLocaleString("fr-FR");
+        byId("kpi-ethereum").textContent = Number(ethereum.total_analyses || 0).toLocaleString("fr-FR");
+        byId("kpi-ethereum-risks").textContent = Number(ethereum.risques_detectes || 0).toLocaleString("fr-FR");
+        byId("kpi-recorded").textContent = Number(alertData.nombre_total).toLocaleString("fr-FR");
+        byId("kpi-total").textContent = Number(summary.total_analyses || 0).toLocaleString("fr-FR");
+        const formatBlockchainSummary = (chain) => {
+          if (!Number(chain.total_analyses || 0)) return "Aucune analyse enregistrée.";
+          const ratio = chain.part_risque_detecte === null
+            ? "—"
+            : `${(Number(chain.part_risque_detecte) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })}%`;
+          return `${Number(chain.total_analyses).toLocaleString("fr-FR")} analyses · ${Number(chain.risques_detectes).toLocaleString("fr-FR")} risques détectés (${ratio}) · score moyen ${Number(chain.score_risque_moyen).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}/100`;
+        };
+        byId("analytics-bitcoin-summary").textContent = formatBlockchainSummary(bitcoin);
+        byId("analytics-ethereum-summary").textContent = formatBlockchainSummary(ethereum);
+        byId("analytics-recorded").textContent = `${Number(summary.analyses_enregistrees).toLocaleString("fr-FR")} / ${Number(summary.total_analyses).toLocaleString("fr-FR")}`;
+        renderRecentAnalyses(recentData.analyses);
+        renderAlerts(alertData.alertes, alertData.nombre_total);
+      } catch (error) {
+        byId("overall-status").textContent = "API indisponible";
+        byId("overall-dot").className = "status-dot offline";
+        showToast(error.message, true);
+      }
+    }
+
+    function switchTab(tab, navButton) {
+      document.querySelectorAll(".tab-content").forEach((section) => section.classList.toggle("active", section.id === `tab-${tab}`));
+      document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button === navButton));
+      const [title, subtitle] = pageContent[tab];
+      byId("page-title").textContent = title;
+      byId("page-subtitle").textContent = subtitle;
+      if (tab === "alerts" || tab === "dashboard" || tab === "analytics") refreshDashboard();
+      if (tab === "analytics") {
+        loadEthereumMetrics();
+        loadShapImportance();
+      }
+      if (tab === "transactions") {
+        refreshDashboard();
+      }
+      if (tab === "history") {
+        refreshHistory();
+      }
+    }
+
+    let toastTimer;
+    function showToast(message, isError = false) {
+      const toast = byId("toast");
+      toast.textContent = message;
+      toast.style.borderColor = isError ? "rgba(239,68,68,.6)" : "rgba(16,185,129,.5)";
+      toast.hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { toast.hidden = true; }, 4500);
+    }
+
+    function parseFeatures(text) {
+      const values = text.trim().split(/[\s,;]+/).filter(Boolean).map(Number);
+      if (values.length !== 166) throw new Error(`Le modèle attend exactement 166 valeurs ; ${values.length} reçue(s).`);
+      if (values.some((value) => !Number.isFinite(value))) throw new Error("Toutes les caractéristiques doivent être des nombres valides.");
+      return values;
+    }
+
+    function updateFeatureInput(values) {
+      byId("features").value = values.join(", ");
+      byId("feature-count").textContent = `${values.length} / 166 caractéristiques`;
+      byId("feature-count").style.color = values.length === 166 ? "var(--green-success)" : "var(--text-muted)";
+      const ready = values.length === 166 && values.every(Number.isFinite);
+      byId("analyze-button").disabled = !ready;
+      byId("analyze-button").innerHTML = ready
+        ? '<i class="fa-solid fa-magnifying-glass"></i> 2. Analyser la transaction'
+        : '<i class="fa-solid fa-magnifying-glass"></i> 1. Charger un exemple d’abord';
+      byId("load-instructions").textContent = ready
+        ? "Les 166 valeurs sont prêtes. Cliquez sur « 2. Analyser la transaction » pour voir le résultat."
+        : "Étape 1 : cliquez sur « Charger l'exemple Elliptic ». Étape 2 : quand le compteur affiche 166 / 166, cliquez sur « Analyser la transaction ».";
+    }
+
+    byId("load-sample").addEventListener("click", async () => {
+      const button = byId("load-sample");
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Chargement…';
+      try {
+        const sample = await api("/api/dataset/sample");
+        if (sample.nombre_caracteristiques !== 166 || sample.features.length !== 166) {
+          throw new Error("L'exemple chargé ne contient pas les 166 caractéristiques attendues.");
+        }
+        byId("transaction-id").value = sample.transaction_id;
+        updateFeatureInput(sample.features);
+        byId("prediction-result").hidden = true;
+        showToast(`Transaction ${sample.transaction_id} chargée : 166 caractéristiques prêtes.`);
+      } catch (error) {
+        showToast(error.message, true);
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-solid fa-file-import"></i> Charger l’exemple Elliptic';
+      }
+    });
+
+    byId("features").addEventListener("input", (event) => {
+      const values = event.target.value.trim().split(/[\s,;]+/).filter(Boolean).map(Number);
+      updateFeatureInput(values);
+    });
+
+    byId("csv-file").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        let chunkSize = Math.min(65536, file.size);
+        let text = "";
+        let firstRow = "";
+        while (chunkSize > 0 && chunkSize <= Math.min(file.size, 4 * 1024 * 1024)) {
+          text = await file.slice(0, chunkSize).text();
+          const newline = text.search(/\r?\n/);
+          if (newline >= 0) {
+            firstRow = text.slice(0, newline);
+            break;
+          }
+          if (chunkSize === file.size || chunkSize === 4 * 1024 * 1024) {
+            firstRow = text.trim();
+            break;
+          }
+          chunkSize = Math.min(chunkSize * 2, file.size, 4 * 1024 * 1024);
+        }
+        firstRow = firstRow.replace(/^\uFEFF/, "");
+        if (!firstRow) throw new Error("Le fichier ne contient aucune ligne.");
+        let columns = firstRow.split(",").map((value) => value.trim());
+        let transactionId = "";
+        if (columns.length === 167) transactionId = columns.shift();
+        if (columns.length !== 166) throw new Error(`Le fichier choisi n'est pas elliptic_txs_features.csv. Il faut un identifiant et 166 caractéristiques ; cette ligne en contient ${columns.length}.`);
+        if (columns.some((value) => !Number.isFinite(Number(value)))) throw new Error("La première ligne doit contenir des valeurs numériques sans en-tête.");
+        updateFeatureInput(columns.map(Number));
+        if (transactionId && !byId("transaction-id").value) byId("transaction-id").value = transactionId;
+        byId("prediction-result").hidden = true;
+        showToast(`Transaction ${transactionId || "chargée"} : 166 caractéristiques prêtes. Cliquez sur Analyser.`);
+      } catch (error) {
+        showToast(error.message, true);
+      }
+    });
+
+    byId("prediction-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = byId("analyze-button");
+      const resultBox = byId("prediction-result");
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse en cours…';
+      resultBox.hidden = true;
+      try {
+        const features = parseFeatures(byId("features").value);
+        const transactionId = byId("transaction-id").value.trim();
+        const result = await api("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ features, transaction_id: transactionId || null })
+        });
+        const explanations = (result.explications_shap || []).map((item) => `
+          <li><span class="mono">${escapeHtml(item.feature)}</span> :
+          ${Number(item.contribution) >= 0 ? "+" : ""}${Number(item.contribution).toFixed(5)}
+          (valeur ${Number(item.value).toLocaleString("fr-FR", { maximumFractionDigits: 4 })})</li>
+        `).join("");
+        const illicit = result.classe_predite === 1;
+        const registered = result.blockchain_enregistre;
+        resultBox.innerHTML = `
+          <h3 class="result-title">Résultat de l'analyse</h3>
+          <div class="result-grid">
+            <div><div class="detail-label">Numéro d'analyse</div><div class="detail-value">#${escapeHtml(result.id_analyse)}</div></div>
+            <div><div class="detail-label">Classe estimée</div><div class="detail-value ${illicit ? "error-message" : ""}">${illicit ? "Risque détecté" : "Risque non détecté"}</div></div>
+            <div><div class="detail-label">Risque estimé</div><div class="detail-value">${escapeHtml(result.score_risque_sur_100)}/100</div></div>
+            <div><div class="detail-label">Probabilité de la classe positive</div><div class="detail-value">${(Number(result.probabilite_illicite) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}%</div></div>
+          </div>
+          <p class="form-help">${registered
+            ? `Alerte enregistrée sur la blockchain. Hash : <span class="mono">${escapeHtml(result.hash_transaction_blockchain)}</span>`
+            : transactionId ? `Non enregistrée sur la blockchain : ${escapeHtml(result.erreur_blockchain || "échec de l'inscription")}` : "Aucun identifiant fourni : résultat non inscrit sur la blockchain."}</p>
+          <p class="form-help">${escapeHtml(result.avertissement)}</p>
+          <h4>Principales contributions SHAP (log-odds, non causales)</h4>
+          <ul>${explanations}</ul>`;
+        resultBox.hidden = false;
+        await refreshDashboard();
+      } catch (error) {
+        resultBox.innerHTML = `<p class="error-message">${escapeHtml(error.message)}</p>`;
+        resultBox.hidden = false;
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> 2. Analyser la transaction';
+      }
+    });
+
+    function renderEthereumResult(result, resultBox) {
+        const riskDetected = result.classe_predite === 1;
+        const registered = result.blockchain_enregistre;
+        const simulated = result.mode === "simulation_locale";
+        const explorerLink = registered
+          && state.status?.chain_id === 11155111
+          && /^0x[0-9a-fA-F]{64}$/.test(result.hash_transaction_blockchain)
+          ? `<a href="https://sepolia.etherscan.io/tx/${encodeURIComponent(result.hash_transaction_blockchain)}" target="_blank" rel="noopener noreferrer">Voir sur Sepolia Etherscan</a>`
+          : "";
+        const explanations = (result.explications_shap || []).map((item) => `
+          <li><span class="mono">${escapeHtml(item.feature)}</span> :
+          ${Number(item.contribution) >= 0 ? "+" : ""}${Number(item.contribution).toFixed(5)}
+          (valeur ${Number(item.value).toLocaleString("fr-FR", { maximumFractionDigits: 4 })})</li>
+        `).join("");
+        const source = result.source_features;
+        resultBox.innerHTML = `
+          <h3 class="result-title">${simulated ? "Démo Ethereum simulée" : "Analyse Ethereum réelle — mainnet"} — ${riskDetected ? "Risque détecté" : "Risque non détecté"}</h3>
+          ${simulated ? `<p class="notice">${escapeHtml(result.avertissement)}</p>` : ""}
+          <div class="result-grid">
+            <div><div class="detail-label">Source des données</div><div class="detail-value">${escapeHtml(source.reseau || source.fenetre)}</div></div>
+            <div><div class="detail-label">Score de risque</div><div class="detail-value">${escapeHtml(result.score_risque_sur_100)}/100</div></div>
+            <div><div class="detail-label">Probabilité de la classe positive du corpus</div><div class="detail-value">${(Number(result.probabilite_scam) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}%</div></div>
+            <div><div class="detail-label">Interprétation</div><div class="detail-value">${riskDetected ? "Activité à examiner" : "Aucun risque détecté par le modèle"}</div></div>
+            <div><div class="detail-label">${simulated ? "Transactions simulées" : "Transactions récupérées"}</div><div class="detail-value">${escapeHtml(source.transactions_normales)} normales · ${escapeHtml(source.transactions_internes)} internes · ${escapeHtml(source.transferts_erc20)} transferts ERC-20</div></div>
+            <div><div class="detail-label">Réseau du contrat d'alerte</div><div class="detail-value">${escapeHtml(state.status?.reseau || "Non connecté")}</div></div>
+            <div><div class="detail-label">Alerte on-chain</div><div class="detail-value">${registered ? `Confirmée (${escapeHtml(result.hash_transaction_blockchain)}) ${explorerLink}` : simulated ? "Aucune — démo sans transaction" : result.alerte_non_enregistree_raison === "autorisation_absente" ? "Non enregistrée — autorisation non donnée" : "Non enregistrée"}</div></div>
+          </div>
+          ${simulated ? "" : `<p class="form-help">${escapeHtml(result.avertissement)}</p>`}
+          ${result.erreur_blockchain ? `<p class="error-message">${escapeHtml(result.erreur_blockchain)}</p>` : ""}
+          <h4>Principales contributions SHAP (probabilité scam)</h4>
+          <ul>${explanations}</ul>`;
+        resultBox.hidden = false;
+    }
+
+    byId("ethereum-address-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = byId("analyze-ethereum-button");
+      const resultBox = byId("ethereum-address-result");
+      const address = byId("ethereum-address").value.trim();
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse Ethereum…';
+      resultBox.hidden = true;
+      try {
+        const result = await api("/api/ethereum/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address,
+            autoriser_enregistrement_alerte: byId("ethereum-authorize-alert").checked
+          })
+        });
+        renderEthereumResult(result, resultBox);
+        await refreshDashboard();
+      } catch (error) {
+        resultBox.innerHTML = `<p class="error-message">${escapeHtml(error.message)}</p>`;
+        resultBox.hidden = false;
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-brands fa-ethereum"></i> Analyser l’adresse';
+      }
+    });
+
+    byId("ethereum-demo-button").addEventListener("click", async () => {
+      const button = byId("ethereum-demo-button");
+      const resultBox = byId("ethereum-address-result");
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Simulation Ethereum…';
+      resultBox.hidden = true;
+      try {
+        const result = await api("/api/ethereum/demo", { method: "POST" });
+        renderEthereumResult(result, resultBox);
+      } catch (error) {
+        resultBox.innerHTML = `<p class="error-message">${escapeHtml(error.message)}</p>`;
+        resultBox.hidden = false;
+      } finally {
+        const status = state.status;
+        button.disabled = !status?.analyseur_ethereum_disponible
+          || !status.blockchain_connectee
+          || status.reseau !== "Hardhat local (chain ID 31337)";
+        button.innerHTML = '<i class="fa-solid fa-flask"></i> Tester avec l’exemple local';
+      }
+    });
+
+    document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.tab, button)));
+    document.querySelectorAll("[data-go]").forEach((button) => button.addEventListener("click", () => {
+      const tab = button.dataset.go;
+      switchTab(tab, document.querySelector(`.nav-item[data-tab="${tab}"]`));
+    }));
+    document.querySelectorAll(".btn-time").forEach((button) => button.addEventListener("click", () => {
+      document.querySelectorAll(".btn-time").forEach((item) => item.classList.toggle("active", item === button));
+      state.periodDays = Number(button.dataset.days);
+      renderCharts();
+    }));
+    byId("refresh-alerts").addEventListener("click", refreshDashboard);
+    byId("refresh-history").addEventListener("click", refreshHistory);
+    let historySearchTimer;
+    byId("history-search").addEventListener("input", () => {
+      clearTimeout(historySearchTimer);
+      state.historyPage = 0;
+      historySearchTimer = setTimeout(refreshHistory, 250);
+    });
+    ["history-class-filter", "history-type-filter", "history-chain-filter"].forEach((id) => byId(id).addEventListener("change", () => {
+      state.historyPage = 0;
+      refreshHistory();
+    }));
+    byId("history-previous").addEventListener("click", () => {
+      if (state.historyPage > 0) {
+        state.historyPage--;
+        refreshHistory();
+      }
+    });
+    byId("history-next").addEventListener("click", () => {
+      if ((state.historyPage + 1) * state.historyLimit < state.historyTotal) {
+        state.historyPage++;
+        refreshHistory();
+      }
+    });
+    document.addEventListener("click", async (event) => {
+      const hashLink = event.target.closest("[data-copy-hash]");
+      if (!hashLink) return;
+      event.preventDefault();
+      await navigator.clipboard.writeText(hashLink.dataset.copyHash);
+      showToast("Hash de transaction copié.");
+    });
+    refreshDashboard();
+    setInterval(refreshDashboard, 30000);
+  </script>
+</body>
+</html>

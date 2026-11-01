@@ -1,0 +1,31 @@
+{
+  "name": "blockchain-fraud-detection",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start:local": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\start-local.ps1",
+    "test": "npm run test:python && npm run test:hardhat",
+    "test:python": ".\\.venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+    "test:hardhat": "npx hardhat test",
+    "build:production": "npx hardhat build --build-profile production",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.9",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@nomicfoundation/hardhat-verify": "^3.1.4",
+    "@types/node": "^22.20.5",
+    "forge-std": "github:foundry-rs/forge-std#v1.16.2",
+    "hardhat": "^3.21.0",
+    "typescript": "~6.0.3",
+    "viem": "^2.57.11"
+  }
+}
