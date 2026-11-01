@@ -41,6 +41,7 @@ secrets.*.json
 # Downloaded Ethereum training artifacts and address splits
 /data/external/ethereum/
 /data/processed/ethereum-address-splits/
+/data/raw/archive/elliptic_bitcoin_dataset/
 
 # Gas snapshot files
 /.gas-snapshot
