@@ -40,6 +40,20 @@ class ApiStatusTests(unittest.TestCase):
         self.assertIsNone(status["reseau"])
         self.assertFalse(status["ethereum_provider_configured"])
 
+    def test_public_rpc_means_only_etherscan_key_is_required(self) -> None:
+        with (
+            patch.object(api, "obtenir_blockchain", return_value=None),
+            patch.object(api, "obtenir_analyseur_ethereum", return_value=None),
+            patch.dict(
+                "os.environ",
+                {"ETHERSCAN_API_KEY": "test-key"},
+                clear=True,
+            ),
+        ):
+            status = api.statut_services()
+
+        self.assertTrue(status["ethereum_provider_configured"])
+
 
 if __name__ == "__main__":
     unittest.main()

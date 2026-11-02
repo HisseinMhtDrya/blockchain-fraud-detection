@@ -13,12 +13,13 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-Dans Notepad, remplacez les valeurs vides et l'exemple de clé par vos propres
-clés, puis enregistrez le fichier. N'ajoutez ni guillemets ni espaces autour du
+Dans Notepad, remplacez les valeurs vides par vos propres clés, puis
+enregistrez le fichier. N'ajoutez ni guillemets ni espaces autour du
 `=`. Ne partagez jamais `.env` : il est exclu de Git.
 
 ```dotenv
 ETHERSCAN_API_KEY=votre_nouvelle_cle_etherscan
+# Facultatif : votre RPC mainnet. Sans cette variable, l'application utilise un RPC public.
 ETHEREUM_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/votre_nouvelle_cle_alchemy
 ```
 
@@ -27,11 +28,24 @@ L'API lit automatiquement `.env` à chaque démarrage ; aucune saisie de clés
 dans PowerShell n'est nécessaire. Les variables d'environnement déjà définies
 restent prioritaires sur les valeurs du fichier.
 
-Le RPC Alchemy fournit l'accès Ethereum mainnet utilisé pour vérifier le réseau
-et les contrats. L'historique des transactions de l'analyse live continue de
-venir d'Etherscan ; `ETHERSCAN_API_KEY` reste donc nécessaire séparément. Ne
-remplacez pas `BLOCKCHAIN_RPC_URL` par ce RPC : cette variable sert au reporter
-du contrat et peut cibler un autre réseau.
+Le RPC configuré fournit l'accès Ethereum mainnet utilisé pour vérifier le
+réseau et les contrats. S'il renvoie HTTP 401/403, l'application essaie des RPC
+publics mainnet (PublicNode, dRPC et BlastAPI), en vérifiant le chain ID avant
+chaque basculement ; PublicNode est également utilisé si `ETHEREUM_RPC_URL` est
+absente. L'historique des transactions vient toujours d'Etherscan, donc
+`ETHERSCAN_API_KEY` reste obligatoire. Ne remplacez pas
+`BLOCKCHAIN_RPC_URL` par ce RPC : cette variable sert au reporter du contrat
+et peut cibler un autre réseau.
+
+### Déploiement sur Render
+
+Dans **Dashboard → votre service → Environment**, ajoutez `ETHERSCAN_API_KEY`
+avec une clé Etherscan valide, puis redéployez le service. `ETHEREUM_RPC_URL`
+est facultative : retirez-la si son ancienne valeur provoque HTTP 401 ; le RPC
+public mainnet sera utilisé automatiquement. Si vous gardez une URL RPC
+personnalisée, vérifiez que sa clé est active et que l'URL inclut bien le chemin
+et la clé du fournisseur. Les variables `BLOCKCHAIN_RPC_URL` (Sepolia) et
+`ETHEREUM_RPC_URL` (Ethereum mainnet) ont des usages distincts.
 
 Après avoir enregistré `.env`, arrêtez l'ancienne API avec `Ctrl+C`, puis
 redémarrez-la depuis la racine du projet :
@@ -241,7 +255,7 @@ Après configuration, vérifiez :
 npx hardhat --network sepolia run .\scripts\check-sepolia-config.ts
 ```
 
-Pour l'analyse Ethereum, l'application exige `ETHERSCAN_API_KEY` et `ETHEREUM_RPC_URL`. Le fournisseur vérifie réellement que le RPC est sur Ethereum mainnet (chain ID 1) au premier accès; la vérification ci-dessus ne contacte pas Etherscan.
+Pour l'analyse Ethereum, l'application exige `ETHERSCAN_API_KEY`. `ETHEREUM_RPC_URL` est facultative; au premier accès, le fournisseur vérifie que le RPC choisi est sur Ethereum mainnet (chain ID 1). Une erreur d'authentification 401/403 sur l'URL personnalisée déclenche un basculement vers le RPC public mainnet; cette vérification ne contacte pas Etherscan.
 
 ## 5. Nettoyage après utilisation
 
@@ -262,7 +276,7 @@ Remove-Item Env:SEPOLIA_PRIVATE_KEY
 | Usage | Variable | Source | Stockage |
 |-------|----------|--------|----------|
 | Analyse Ethereum live | `ETHERSCAN_API_KEY` | Etherscan | Fichier `.env` local ignoré |
-| Analyse Ethereum live | `ETHEREUM_RPC_URL` | Alchemy/Infura | Fichier `.env` local ignoré |
+| Analyse Ethereum live | `ETHEREUM_RPC_URL` | Alchemy/Infura (facultatif, RPC public de secours) | Fichier `.env` local ignoré ou Render Environment |
 | Déploiement / contrôle Sepolia | `SEPOLIA_RPC_URL` | Fournisseur RPC Sepolia | Keystore Hardhat recommandé |
 | Déploiement / contrôle Sepolia | `SEPOLIA_PRIVATE_KEY` | Wallet de déploiement | Keystore Hardhat recommandé |
 | Reporter API | `BLOCKCHAIN_RPC_URL` | Fournisseur RPC Sepolia | Session temporaire |

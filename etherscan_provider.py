@@ -11,6 +11,12 @@ from collections.abc import Mapping, Sequence
 
 
 ETHERSCAN_API_URL = "https://api.etherscan.io/v2/api"
+DEFAULT_ETHEREUM_RPC_URL = "https://ethereum-rpc.publicnode.com"
+FALLBACK_ETHEREUM_RPC_URLS = (
+    DEFAULT_ETHEREUM_RPC_URL,
+    "https://eth.drpc.org",
+    "https://eth-mainnet.public.blastapi.io",
+)
 ADDRESS_PATTERN = re.compile(r"0x[0-9a-fA-F]{40}")
 PAGE_SIZE = 10_000
 MAX_PAGES_PER_ACTION = 100
@@ -24,6 +30,10 @@ class EthereumProviderError(RuntimeError):
     pass
 
 
+class EthereumRpcAuthenticationError(EthereumProviderError):
+    pass
+
+
 class EthereumProvider:
     def __init__(
         self,
@@ -32,14 +42,11 @@ class EthereumProvider:
         rpc_url: str | None = None,
     ) -> None:
         self.api_key = api_key or os.getenv("ETHERSCAN_API_KEY")
-        self.rpc_url = rpc_url or os.getenv("ETHEREUM_RPC_URL")
+        configured_rpc_url = rpc_url or os.getenv("ETHEREUM_RPC_URL")
+        self.rpc_url = configured_rpc_url or DEFAULT_ETHEREUM_RPC_URL
         if not self.api_key:
             raise EthereumProviderError(
                 "ETHERSCAN_API_KEY is required for Ethereum address analysis."
-            )
-        if not self.rpc_url:
-            raise EthereumProviderError(
-                "ETHEREUM_RPC_URL is required for Ethereum mainnet contract checks."
             )
         self._rpc_id = 0
         self._verify_mainnet()
@@ -51,13 +58,17 @@ class EthereumProvider:
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as error:
             host = urllib.parse.urlparse(request.full_url).hostname
-            provider = (
-                "Etherscan"
-                if host == urllib.parse.urlparse(ETHERSCAN_API_URL).hostname
-                else "Configured Ethereum RPC"
+            if host == urllib.parse.urlparse(ETHERSCAN_API_URL).hostname:
+                raise EthereumProviderError(
+                    f"Etherscan returned HTTP {error.code}."
+                ) from error
+            error_type = (
+                EthereumRpcAuthenticationError
+                if error.code in (401, 403)
+                else EthereumProviderError
             )
-            raise EthereumProviderError(
-                f"{provider} returned HTTP {error.code}."
+            raise error_type(
+                f"Configured Ethereum RPC returned HTTP {error.code}."
             ) from error
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             raise EthereumProviderError(
@@ -69,13 +80,68 @@ class EthereumProvider:
             ) from error
 
     def _rpc_request(self, payload: object) -> object:
-        request = urllib.request.Request(
-            self.rpc_url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        return self._read_json(request)
+        def create_request(
+            rpc_url: str,
+            request_payload: object,
+        ) -> urllib.request.Request:
+            return urllib.request.Request(
+                rpc_url,
+                data=json.dumps(request_payload).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "blockchain-fraud-detection/ethereum-phase4",
+                },
+                method="POST",
+            )
+
+        try:
+            return self._read_json(create_request(self.rpc_url, payload))
+        except EthereumRpcAuthenticationError as original_error:
+            for fallback_url in FALLBACK_ETHEREUM_RPC_URLS:
+                if fallback_url == self.rpc_url:
+                    continue
+                try:
+                    chain_response = self._read_json(
+                        create_request(
+                            fallback_url,
+                            {
+                                "jsonrpc": "2.0",
+                                "id": 1,
+                                "method": "eth_chainId",
+                                "params": [],
+                            },
+                        )
+                    )
+                except EthereumRpcAuthenticationError:
+                    continue
+
+                if not isinstance(chain_response, Mapping) or chain_response.get(
+                    "error"
+                ):
+                    raise EthereumProviderError(
+                        "Could not verify the fallback RPC chain ID."
+                    )
+                try:
+                    chain_id = int(str(chain_response["result"]), 16)
+                except (KeyError, TypeError, ValueError) as error:
+                    raise EthereumProviderError(
+                        "The fallback RPC returned an invalid chain ID."
+                    ) from error
+                if chain_id != 1:
+                    raise EthereumProviderError(
+                        "The fallback RPC is not Ethereum mainnet."
+                    )
+
+                try:
+                    response = self._read_json(create_request(fallback_url, payload))
+                except EthereumRpcAuthenticationError:
+                    continue
+                self.rpc_url = fallback_url
+                return response
+
+            if self.rpc_url in FALLBACK_ETHEREUM_RPC_URLS:
+                raise
+            raise original_error
 
     def _verify_mainnet(self) -> None:
         result = self._rpc_request(

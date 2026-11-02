@@ -446,7 +446,7 @@
           <div>
             <label class="form-label" for="ethereum-address">Adresse Ethereum (mainnet)</label>
             <input id="ethereum-address" class="text-input mono" type="text" inputmode="text" autocomplete="off" required pattern="0x[0-9a-fA-F]{40}" maxlength="42" placeholder="0x…">
-            <p id="ethereum-live-help" class="form-help">Configurez ETHERSCAN_API_KEY et ETHEREUM_RPC_URL (chain ID 1) pour activer l'analyse réelle. Sans ces accès, utilisez la démo locale ci-dessous.</p>
+            <p id="ethereum-live-help" class="form-help">Configurez ETHERSCAN_API_KEY pour activer l'analyse réelle. Le RPC mainnet public est utilisé par défaut ; vous pouvez fournir ETHEREUM_RPC_URL.</p>
           </div>
           <label class="form-help"><input id="ethereum-authorize-alert" type="checkbox"> J'autorise explicitement l'envoi d'une transaction d'alerte si le modèle détecte un risque. L'analyse seule n'envoie aucune transaction.</label>
           <div class="form-actions">
@@ -590,8 +590,32 @@
 
     async function api(path, options) {
       const response = await fetch(path, options);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || `Erreur HTTP ${response.status}`);
+      const body = await response.text();
+      let data;
+      if (body) {
+        try {
+          data = JSON.parse(body);
+        } catch (error) {
+          if (!(error instanceof SyntaxError)) throw error;
+          if (!response.ok) {
+            throw new Error(`Réponse invalide du serveur (HTTP ${response.status}).`);
+          }
+          throw new Error(
+            "Réponse incomplète du serveur. L'analyse a peut-être dépassé le délai autorisé ; réessayez avec une adresse moins active."
+          );
+        }
+      }
+      if (!response.ok) {
+        if (response.status === 502 || response.status === 504) {
+          throw new Error(
+            "Le serveur a interrompu l'analyse (délai dépassé ou service indisponible). Réessayez avec une adresse moins active."
+          );
+        }
+        throw new Error(data?.detail || `Erreur HTTP ${response.status}`);
+      }
+      if (data === undefined) {
+        throw new Error("Le serveur a renvoyé une réponse vide.");
+      }
       return data;
     }
 
@@ -623,12 +647,12 @@
         ? "XGBoost Ethereum + explications SHAP disponibles"
         : status.erreur_modele_ethereum || "Modèle Ethereum non entraîné";
       byId("setting-ethereum-provider").textContent = status.ethereum_provider_configured
-        ? "Identifiants configurés — connexion vérifiée lors de l'analyse"
-        : "Configuration manquante : ETHERSCAN_API_KEY et/ou ETHEREUM_RPC_URL";
+        ? "Clé Etherscan configurée — RPC mainnet public ou personnalisé"
+        : "Configuration manquante : ETHERSCAN_API_KEY";
       byId("analyze-ethereum-button").disabled = !status.ethereum_provider_configured;
       byId("ethereum-live-help").textContent = status.ethereum_provider_configured
-        ? "Accès configurés ; le RPC sera vérifié sur Ethereum mainnet (chain ID 1) au lancement de l'analyse."
-        : "Analyse live désactivée : configurez ETHERSCAN_API_KEY et ETHEREUM_RPC_URL (chain ID 1). Vous pouvez tester le modèle avec la simulation locale.";
+        ? "Etherscan est configuré. Le RPC est vérifié sur Ethereum mainnet (chain ID 1) ; si votre RPC personnalisé refuse l'accès (401/403), un RPC public de secours est utilisé."
+        : "Analyse live désactivée : configurez ETHERSCAN_API_KEY. Vous pouvez tester le modèle avec la simulation locale.";
       const localEthereumDemoReady = status.analyseur_ethereum_disponible
         && status.blockchain_connectee
         && status.reseau === "Hardhat local (chain ID 31337)";

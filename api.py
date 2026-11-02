@@ -163,9 +163,7 @@ def statut_services():
         "erreur_blockchain": blockchain_error,
         "erreur_modele_ethereum": ethereum_analyzer_error,
         "analyseur_ethereum_disponible": analyseur_ethereum_disponible,
-        "ethereum_provider_configured": bool(
-            os.getenv("ETHERSCAN_API_KEY") and os.getenv("ETHEREUM_RPC_URL")
-        ),
+        "ethereum_provider_configured": bool(os.getenv("ETHERSCAN_API_KEY")),
     }
 
 

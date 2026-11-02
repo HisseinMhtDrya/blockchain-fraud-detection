@@ -3,7 +3,13 @@ import urllib.error
 import urllib.request
 from unittest.mock import patch
 
-from etherscan_provider import EthereumProvider, EthereumProviderError
+from etherscan_provider import (
+    DEFAULT_ETHEREUM_RPC_URL,
+    FALLBACK_ETHEREUM_RPC_URLS,
+    EthereumProvider,
+    EthereumProviderError,
+    EthereumRpcAuthenticationError,
+)
 
 
 class EthereumProviderTests(unittest.TestCase):
@@ -14,10 +20,129 @@ class EthereumProviderTests(unittest.TestCase):
         provider._rpc_id = 0
         return provider
 
-    def test_requires_api_key_and_rpc_url(self) -> None:
+    def test_requires_etherscan_api_key(self) -> None:
         with patch.dict("os.environ", {}, clear=True):
             with self.assertRaisesRegex(EthereumProviderError, "ETHERSCAN_API_KEY"):
                 EthereumProvider()
+
+    def test_uses_public_rpc_when_no_custom_rpc_is_configured(self) -> None:
+        with (
+            patch.dict("os.environ", {"ETHERSCAN_API_KEY": "test-key"}, clear=True),
+            patch.object(EthereumProvider, "_verify_mainnet") as verify,
+        ):
+            provider = EthereumProvider()
+
+        self.assertEqual(provider.rpc_url, DEFAULT_ETHEREUM_RPC_URL)
+        verify.assert_called_once_with()
+
+    def test_retries_with_public_rpc_when_custom_rpc_rejects_authentication(self) -> None:
+        requests = []
+
+        def read_json(request):
+            requests.append(request)
+            if request.full_url == "https://rpc.example/private":
+                raise EthereumRpcAuthenticationError(
+                    "Configured Ethereum RPC returned HTTP 401."
+                )
+            return {"result": "0x1"}
+
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "ETHERSCAN_API_KEY": "test-key",
+                    "ETHEREUM_RPC_URL": "https://rpc.example/private",
+                },
+                clear=True,
+            ),
+            patch.object(EthereumProvider, "_read_json", side_effect=read_json),
+        ):
+            provider = EthereumProvider()
+
+        self.assertEqual(provider.rpc_url, DEFAULT_ETHEREUM_RPC_URL)
+        self.assertEqual(
+            [request.full_url for request in requests],
+            [
+                "https://rpc.example/private",
+                DEFAULT_ETHEREUM_RPC_URL,
+                DEFAULT_ETHEREUM_RPC_URL,
+            ],
+        )
+
+    def test_contract_lookup_falls_back_when_custom_rpc_rejects_authentication(self) -> None:
+        provider = self.provider()
+        requests = []
+
+        def read_json(request):
+            requests.append(request)
+            if request.full_url == "https://rpc.example":
+                raise EthereumRpcAuthenticationError(
+                    "Configured Ethereum RPC returned HTTP 401."
+                )
+            if len(requests) == 2:
+                return {"result": "0x1"}
+            return [{"id": 1, "result": "0x"}]
+
+        with patch.object(EthereumProvider, "_read_json", side_effect=read_json):
+            result = provider.contract_flags(["0x" + "a" * 40])
+
+        self.assertEqual(result, {"0x" + "a" * 40: False})
+        self.assertEqual(provider.rpc_url, DEFAULT_ETHEREUM_RPC_URL)
+        self.assertEqual(
+            [request.full_url for request in requests],
+            [
+                "https://rpc.example",
+                DEFAULT_ETHEREUM_RPC_URL,
+                DEFAULT_ETHEREUM_RPC_URL,
+            ],
+        )
+
+    def test_contract_lookup_tries_second_public_rpc_after_401(self) -> None:
+        provider = self.provider()
+        provider.rpc_url = DEFAULT_ETHEREUM_RPC_URL
+        requests = []
+
+        def read_json(request):
+            requests.append(request)
+            if request.full_url == DEFAULT_ETHEREUM_RPC_URL:
+                raise EthereumRpcAuthenticationError(
+                    "Configured Ethereum RPC returned HTTP 401."
+                )
+            if len(requests) == 2:
+                return {"result": "0x1"}
+            return [{"id": 1, "result": "0x"}]
+
+        with patch.object(EthereumProvider, "_read_json", side_effect=read_json):
+            result = provider.contract_flags(["0x" + "a" * 40])
+
+        self.assertEqual(result, {"0x" + "a" * 40: False})
+        self.assertEqual(provider.rpc_url, FALLBACK_ETHEREUM_RPC_URLS[1])
+
+    def test_contract_batch_401_on_first_fallback_tries_next_rpc(self) -> None:
+        provider = self.provider()
+        requests = []
+
+        def read_json(request):
+            requests.append(request)
+            if request.full_url == "https://rpc.example":
+                raise EthereumRpcAuthenticationError(
+                    "Configured Ethereum RPC returned HTTP 401."
+                )
+            if request.full_url == DEFAULT_ETHEREUM_RPC_URL:
+                if len(requests) == 2:
+                    return {"result": "0x1"}
+                raise EthereumRpcAuthenticationError(
+                    "Configured Ethereum RPC returned HTTP 401."
+                )
+            if len(requests) == 4:
+                return {"result": "0x1"}
+            return [{"id": 1, "result": "0x"}]
+
+        with patch.object(EthereumProvider, "_read_json", side_effect=read_json):
+            result = provider.contract_flags(["0x" + "a" * 40])
+
+        self.assertEqual(result, {"0x" + "a" * 40: False})
+        self.assertEqual(provider.rpc_url, FALLBACK_ETHEREUM_RPC_URLS[1])
 
     def test_refuses_non_mainnet_rpc(self) -> None:
         provider = self.provider()
