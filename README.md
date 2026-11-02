@@ -13,18 +13,18 @@ Voici les différentes vues de l'application :
 *Vue d'ensemble en temps réel de l'état de l'API, du modèle de Machine Learning et du contrat intelligent.*
 
 ### 2. Historique des Analyses
-![Historique](<img width="3000" height="1679" alt="Capture d&#39;écran 2026-11-02 155833" src="https://github.com/user-attachments/assets/3ba1a97f-a884-4fc5-aabf-a253fa393085" />
-)
+![Historique]<img width="3000" height="1679" alt="Capture d&#39;écran 2026-11-02 155833" src="https://github.com/user-attachments/assets/3ba1a97f-a884-4fc5-aabf-a253fa393085" />
+
 *Consultation, filtrage et recherche dans l'historique local des transactions analysées (`sqlite3`).*
 
 ### 3. Analyse d'une Transaction
-![Transaction Analyse](<img width="3000" height="1679" alt="Capture d&#39;écran 2026-11-02 155833" src="https://github.com/user-attachments/assets/e4e93c61-b5e0-4534-80c6-ed2240a6c334" />
-)
+![Transaction Analyse]<img width="3000" height="1679" alt="Capture d&#39;écran 2026-11-02 155833" src="https://github.com/user-attachments/assets/e4e93c61-b5e0-4534-80c6-ed2240a6c334" />
+
 *Interface d'analyse détaillée des caractéristiques, des scores de risque XGBoost et des explications SHAP.*
 
 ### 4. Paramètres & Configuration
-![Paramètres](<img width="3000" height="1690" alt="Capture d&#39;écran 2026-11-02 155818" src="https://github.com/user-attachments/assets/c651c682-bfbf-4d0d-b37d-d2fd6ae7444c" />
-)
+![Paramètres]<img width="3000" height="1690" alt="Capture d&#39;écran 2026-11-02 155818" src="https://github.com/user-attachments/assets/c651c682-bfbf-4d0d-b37d-d2fd6ae7444c" />
+
 *Gestion des connexions RPC, clés Etherscan et configuration du réseau (Hardhat local / Sepolia).*
 
 ---
