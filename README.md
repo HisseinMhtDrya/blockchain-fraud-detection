@@ -9,8 +9,7 @@ Système intelligent de détection d'anomalies et de fraudes sur les transaction
 Voici les différentes vues de l'application :
 
 ### 1. Tableau de Bord
-![Tableau de bord](<img width="2915" height="1702" alt="Capture d&#39;écran 2026-11-02 155733" src="https://github.com/user-attachments/assets/f04b9d19-be8d-4ee7-9d1e-fa7ef5397d9d" />
-)
+![Tableau de bord]<img width="2915" height="1702" alt="Capture d&#39;écran 2026-11-02 155733" src="https://github.com/user-attachments/assets/f04b9d19-be8d-4ee7-9d1e-fa7ef5397d9d" />
 *Vue d'ensemble en temps réel de l'état de l'API, du modèle de Machine Learning et du contrat intelligent.*
 
 ### 2. Historique des Analyses
