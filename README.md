@@ -37,3 +37,16 @@ Depuis la racine du dépôt, avec **Python 3.11** et **Node.js 18** (ou plus ré
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-app.txt
 npm install
+
+Réalisé par l'équipe d'étudiants (Master 1 Informatique) :
+
+HISSEIN MAHAMAT DRYA
+
+MAZINA MASINDA JEREMIE
+
+BASINGA LOLEKA SAMUELA
+KIPULU MBONGO ADOLPHE
+
+Université de Kinshasa (UNIKIN)
+
+Faculté des Sciences et Technologies — Mention Mathématiques, Statistique et Informatique
