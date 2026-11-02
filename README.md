@@ -26,19 +26,8 @@ Voici les différentes vues de l'application :
 <img width="3000" height="1690" alt="Capture d&#39;écran 2026-11-02 155818" src="https://github.com/user-attachments/assets/c651c682-bfbf-4d0d-b37d-d2fd6ae7444c" />
 
 *Gestion des connexions RPC, clés Etherscan et configuration du réseau (Hardhat local / Sepolia).*
-
----
-
-## ⚙️ Installation des Dépendances
-
-Depuis la racine du dépôt, avec **Python 3.11** et **Node.js 18** (ou plus récent), exécutez dans un terminal PowerShell :
-
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-app.txt
-npm install
----
-Réalisé par l'équipe d'étudiants (Master 1 Informatique) :
+ 
+  Réalisé par l'équipe d'étudiants (Master 1 Informatique) :
 
 HISSEIN MAHAMAT DRYA
 
@@ -50,3 +39,14 @@ KIPULU MBONGO ADOLPHE
 Université de Kinshasa (UNIKIN)
 
 Faculté des Sciences et Technologies — Mention Mathématiques, Statistique et Informatique
+---
+
+## ⚙️ Installation des Dépendances
+
+Depuis la racine du dépôt, avec **Python 3.11** et **Node.js 18** (ou plus récent), exécutez dans un terminal PowerShell :
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-app.txt
+npm install
+
